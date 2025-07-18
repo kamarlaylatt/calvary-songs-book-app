@@ -35,7 +35,13 @@ export default function Layout() {
                 <Drawer.Screen
                     name="songs"
                     options={{
-                        title: "Song",
+                        title: "Songs",
+                    }}
+                />
+                <Drawer.Screen
+                    name="about"
+                    options={{
+                        title: "About",
                     }}
                 />
             </Drawer>

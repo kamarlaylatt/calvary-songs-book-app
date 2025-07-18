@@ -6,7 +6,7 @@ export default function DrawerComponent() {
     const theme = useTheme();
     return (
         <View style={{ backgroundColor: theme.colors.surface, flex: 1 }}>
-            <Text variant="headlineMedium" style={{ marginVertical: 20 }}> OS Management </Text>
+            <Text variant="headlineMedium" style={{ marginVertical: 20 }}> Calvary Songs </Text>
             <Drawer.Item
                 style={{ marginBottom: 20 }}
                 icon="home"
@@ -15,9 +15,15 @@ export default function DrawerComponent() {
             />
             <Drawer.Item
                 style={{ marginBottom: 20 }}
-                icon="file-tree-outline"
-                label="Song"
+                icon="music"
+                label="Songs"
                 onPress={() => router.push('/(app)/(drawer)/songs')}
+            />
+            <Drawer.Item
+                style={{ marginBottom: 20 }}
+                icon="information"
+                label="About"
+                onPress={() => router.push('/(app)/(drawer)/about')}
             />
         </View>
     )
