@@ -25,6 +25,7 @@ export default function SongDetailScreen() {
                 setLoading(true);
                 let songData = await getSongBySlug(slug);
                 if (!songData) {
+                    setLoading(true);
                     songData = await fetchSongBySlug(slug);
                 }
                 setSong(songData as SongDetail);
