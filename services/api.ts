@@ -14,23 +14,31 @@ export interface Song {
     youtube?: string;
     description?: string;
     song_writer?: string;
-    style: string;
+    style: {
+        id: string;
+        name: string;
+    };
+    categories: Array<{
+        id: string;
+        name: string;
+    }>;
     lyrics?: string;
     music_notes?: string;
 }
 
 export const fetchSongs = async (): Promise<Song[]> => {
     try {
-        // Fetch without limit parameter to get all songs
         console.log(`Making API call to: ${API_BASE_URL}/songs`);
         const response = await axios.get(`${API_BASE_URL}/songs`);
         return response.data.data.map((song: any) => ({
             id: song.id.toString(),
             title: song.title,
+            slug: song.slug || `song-${song.id}`,
             youtube: song.youtube,
             description: song.description,
             song_writer: song.song_writer,
-            style: song.style?.name || 'Unknown',
+            style: song.style || { id: '', name: 'Unknown' },
+            categories: song.categories || [],
             lyrics: song.lyrics,
             music_notes: song.music_notes
         }));
@@ -40,41 +48,31 @@ export const fetchSongs = async (): Promise<Song[]> => {
     }
 };
 
-export interface SongDetail {
-    id: string;
-    title: string;
-    slug: string;
-    youtube?: string;
-    description?: string;
-    song_writer?: string;
-    style: {
-        id: string;
-        name: string;
-    };
-    categories: Array<{
-        id: string;
-        name: string;
-        slug: string;
-    }>;
-    lyrics?: string;
-    music_notes?: string;
+export interface SongDetail extends Song {
+    code?: number;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export const fetchSongBySlug = async (slug: string): Promise<SongDetail> => {
     try {
         console.log(`Making API call to: ${API_BASE_URL}/songs/${slug}`);
         const response = await axios.get(`${API_BASE_URL}/songs/${slug}`);
+        const songData = response.data.data;
         return {
-            id: response.data.id.toString(),
-            title: response.data.title,
-            slug: response.data.slug,
-            youtube: response.data.youtube,
-            description: response.data.description,
-            song_writer: response.data.song_writer,
-            style: response.data.style,
-            categories: response.data.categories,
-            lyrics: response.data.lyrics,
-            music_notes: response.data.music_notes
+            id: songData.id.toString(),
+            code: songData.code || 0,
+            title: songData.title,
+            slug: songData.slug || `song-${songData.id}`,
+            youtube: songData.youtube,
+            description: songData.description,
+            song_writer: songData.song_writer,
+            style: songData.style || { id: '', name: 'Unknown' },
+            categories: songData.categories || [],
+            lyrics: songData.lyrics,
+            music_notes: songData.music_notes,
+            created_at: songData.created_at || new Date().toISOString(),
+            updated_at: songData.updated_at || new Date().toISOString()
         };
     } catch (error) {
         console.error('Error fetching song by slug:', error);

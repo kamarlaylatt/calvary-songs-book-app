@@ -8,11 +8,12 @@ import { getAllSongs, initDatabase, storeSongs } from '../../../services/databas
 // Song interface based on required fields
 interface Song {
     id: string;
+    slug: string;
     title: string;
     youtube?: string;
     description?: string;
     song_writer?: string;
-    style: string;
+    style: { id: string; name: string };
     lyrics?: string;
     music_notes?: string;
 }
@@ -71,7 +72,7 @@ export default function SongsList() {
     const renderSongItem = ({ item }: { item: Song }) => (
         <TouchableOpacity
             style={styles.songItem}
-            onPress={() => console.log(`Selected song: ${item.title}`)}
+            onPress={() => router.push(`/song/${item.slug}`)}
         >
             <Card style={styles.card}>
                 <Card.Content>
@@ -81,10 +82,10 @@ export default function SongsList() {
                         </Text>
                         <Chip
                             mode="outlined"
-                            style={[styles.styleChip, { backgroundColor: getStyleColor(item.style) }]}
+                            style={[styles.styleChip, { backgroundColor: getStyleColor(item.style.name) }]}
                             textStyle={{ color: '#fff' }}
                         >
-                            {item.style}
+                            {item.style.name}
                         </Chip>
                     </View>
 

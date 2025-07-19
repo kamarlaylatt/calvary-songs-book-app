@@ -1,52 +1,35 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Card, Chip, Text, useTheme } from 'react-native-paper';
+import RenderHtml from 'react-native-render-html';
+import { SongDetail, fetchSongBySlug } from '../../../services/api';
 import { getSongBySlug } from '../../../services/database';
 
-interface SongDetail {
-    id: string;
-    title: string;
-    slug: string;
-    youtube?: string;
-    description?: string;
-    song_writer?: string;
-    style: {
-        id: string;
-        name: string;
-    };
-    categories: Array<{
-        id: string;
-        name: string;
-        slug: string;
-    }>;
-    lyrics?: string;
-    music_notes?: string;
-}
-
 export default function SongDetailScreen() {
-    const { slug } = useLocalSearchParams<{ slug: string }>();
+    const params = useLocalSearchParams<{ slug: string }>();
+    const slug = typeof params.slug === 'string' ? params.slug : null;
     const theme = useTheme();
+    const { width } = useWindowDimensions();
     const [song, setSong] = useState<SongDetail | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!slug) {
+            setLoading(false);
+            return;
+        }
+
         const loadSong = async () => {
             try {
-                if (slug) {
-                    const dbSong = await getSongBySlug(slug);
-                    const songData = dbSong ? {
-                        ...dbSong,
-                        style: {
-                            id: dbSong.style.toLowerCase(),
-                            name: dbSong.style
-                        },
-                        categories: []
-                    } : null;
-                    setSong(songData);
+                setLoading(true);
+                let songData = await getSongBySlug(slug);
+                if (!songData) {
+                    songData = await fetchSongBySlug(slug);
                 }
+                setSong(songData as SongDetail);
             } catch (error) {
-                console.error('Error loading song:', error);
+                console.error('Failed to load song:', error);
             } finally {
                 setLoading(false);
             }
@@ -70,6 +53,69 @@ export default function SongDetailScreen() {
             </View>
         );
     }
+
+    // RenderHtml styles configuration
+    const tagsStyles = {
+        body: {
+            whiteSpace: 'normal',
+            color: '#666',
+            fontSize: 16,
+            lineHeight: 24,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+        },
+        p: {
+            marginBottom: 16,
+            textAlign: 'left',
+        },
+        br: {
+            marginBottom: 8,
+        },
+        div: {
+            marginBottom: 12,
+        },
+        span: {
+            color: '#666',
+        },
+        strong: {
+            fontWeight: 'bold',
+            color: '#333',
+        },
+        em: {
+            fontStyle: 'italic',
+        },
+        h1: {
+            fontSize: 20,
+            fontWeight: 'bold',
+            marginBottom: 12,
+            color: '#333',
+        },
+        h2: {
+            fontSize: 18,
+            fontWeight: 'bold',
+            marginBottom: 10,
+            color: '#333',
+        },
+        h3: {
+            fontSize: 16,
+            fontWeight: 'bold',
+            marginBottom: 8,
+            color: '#333',
+        },
+    };
+
+    const systemFonts = [
+        '-apple-system',
+        'BlinkMacSystemFont',
+        'Segoe UI',
+        'Roboto',
+        'Oxygen',
+        'Ubuntu',
+        'Cantarell',
+        'Fira Sans',
+        'Droid Sans',
+        'Helvetica Neue',
+        'sans-serif'
+    ];
 
     return (
         <ScrollView style={styles.container}>
@@ -132,12 +178,32 @@ export default function SongDetailScreen() {
 
                     {song.lyrics && (
                         <View style={styles.section}>
-                            <Text variant="titleMedium" style={styles.sectionTitle}>
-                                Lyrics
-                            </Text>
-                            <Text variant="bodyMedium" style={styles.lyrics}>
-                                {song.lyrics}
-                            </Text>
+                            <View style={styles.lyricsContainer}>
+                                <RenderHtml
+                                    contentWidth={width - 64} // Account for card padding and container padding
+                                    source={{ html: song.lyrics }}
+                                    tagsStyles={{
+                                        body: {
+                                            whiteSpace: 'normal',
+                                            color: '#ffffff',
+                                            fontSize: 16,
+                                            lineHeight: 24,
+                                            fontFamily: 'Roboto'
+                                        },
+                                        p: { marginBottom: 10, textAlign: 'left' },
+                                        br: { marginBottom: 10 },
+                                        div: { marginBottom: 10 },
+                                        // Add other tag styles as needed
+                                    }}
+                                    systemFonts={['Roboto']}
+                                    enableExperimentalMarginCollapsing={true}
+                                    renderersProps={{
+                                        img: {
+                                            enableExperimentalPercentWidth: true,
+                                        },
+                                    }}
+                                />
+                            </View>
                         </View>
                     )}
 
@@ -224,9 +290,10 @@ const styles = StyleSheet.create({
     categoryChip: {
         height: 32,
     },
-    lyrics: {
-        color: '#666',
-        lineHeight: 24,
+    lyricsContainer: {
+        padding: 16,
+        borderRadius: 8,
+        borderWidth: 1
     },
     musicNotes: {
         color: '#666',
