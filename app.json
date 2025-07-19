@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.kamarehtha96.calvary"
     },
     "web": {
       "bundler": "metro",
@@ -40,7 +41,11 @@
       "typedRoutes": true
     },
     "extra": {
-      "API_BASE_URL": "http://10.0.2.2:8000/api"
+      "API_BASE_URL": "http://10.0.2.2:8000/api",
+      "router": {},
+      "eas": {
+        "projectId": "e2f8d182-4786-4ab9-8d53-01d579713918"
+      }
     }
   }
 }

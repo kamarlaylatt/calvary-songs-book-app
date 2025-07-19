@@ -34,7 +34,7 @@ export default function SongsList() {
         try {
             console.log('Loading songs from database...');
             const dbSongs = await getAllSongs();
-            console.log('Retrieved songs from DB:', dbSongs);
+            // console.log('Retrieved songs from DB:', dbSongs);
 
             if (dbSongs.length > 0) {
                 console.log('Updating state with', dbSongs.length, 'songs');
