@@ -1,7 +1,9 @@
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Card, Chip, Text, useTheme } from 'react-native-paper';
+import { fetchSongs } from '../../../services/api';
+import { getAllSongs, initDatabase, storeSongs } from '../../../services/database';
 
 // Song interface based on required fields
 interface Song {
@@ -15,71 +17,56 @@ interface Song {
     music_notes?: string;
 }
 
-// Mock song data
-const mockSongs: Song[] = [
-    {
-        id: '1',
-        title: 'Amazing Grace',
-        youtube: 'https://youtube.com/watch?v=example1',
-        description: 'A timeless hymn of redemption and grace',
-        song_writer: 'John Newton',
-        style: 'Hymn',
-        lyrics: 'Amazing grace, how sweet the sound...\nThat saved a wretch like me...\nI once was lost, but now am found...\nWas blind, but now I see...',
-        music_notes: 'Key: G Major\nTempo: 80 BPM\nTime Signature: 3/4'
-    },
-    {
-        id: '2',
-        title: 'How Great Thou Art',
-        youtube: 'https://youtube.com/watch?v=example2',
-        description: 'A powerful worship song celebrating God\'s majesty',
-        song_writer: 'Carl Boberg',
-        style: 'Worship',
-        lyrics: 'O Lord my God, when I in awesome wonder...\nConsider all the worlds Thy hands have made...',
-        music_notes: 'Key: A♭ Major\nTempo: 72 BPM\nTime Signature: 4/4'
-    },
-    {
-        id: '3',
-        title: 'Great Is Thy Faithfulness',
-        description: 'A declaration of God\'s unchanging faithfulness',
-        song_writer: 'Thomas Chisholm',
-        style: 'Hymn',
-        lyrics: 'Great is Thy faithfulness, O God my Father...\nThere is no shadow of turning with Thee...',
-        music_notes: 'Key: B♭ Major\nTempo: 88 BPM\nTime Signature: 4/4'
-    },
-    {
-        id: '4',
-        title: 'Blessed Assurance',
-        youtube: 'https://youtube.com/watch?v=example4',
-        description: 'A joyful song of salvation and assurance',
-        song_writer: 'Fanny Crosby',
-        style: 'Gospel',
-        lyrics: 'Blessed assurance, Jesus is mine...\nO what a foretaste of glory divine...',
-        music_notes: 'Key: D Major\nTempo: 120 BPM\nTime Signature: 6/8'
-    },
-    {
-        id: '5',
-        title: 'It Is Well',
-        description: 'A song of peace and trust in God\'s sovereignty',
-        song_writer: 'Horatio Spafford',
-        style: 'Hymn',
-        lyrics: 'When peace like a river, attendeth my way...\nWhen sorrows like sea billows roll...',
-        music_notes: 'Key: G Major\nTempo: 70 BPM\nTime Signature: 4/4'
-    },
-    {
-        id: '6',
-        title: 'Holy Holy Holy',
-        youtube: 'https://youtube.com/watch?v=example6',
-        description: 'A majestic hymn of praise to the Holy Trinity',
-        song_writer: 'Reginald Heber',
-        style: 'Hymn',
-        lyrics: 'Holy, holy, holy! Lord God Almighty!\nEarly in the morning our song shall rise to Thee...',
-        music_notes: 'Key: E♭ Major\nTempo: 92 BPM\nTime Signature: 4/4'
-    }
-];
 
 export default function SongsList() {
     const router = useRouter();
     const theme = useTheme();
+    const [songs, setSongs] = useState<Song[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        initDatabase();
+        loadSongsFromDB();
+    }, []);
+
+    const loadSongsFromDB = async () => {
+        try {
+            console.log('Loading songs from database...');
+            const dbSongs = await getAllSongs();
+            console.log('Retrieved songs from DB:', dbSongs);
+
+            if (dbSongs.length > 0) {
+                console.log('Updating state with', dbSongs.length, 'songs');
+                setSongs(dbSongs);
+            } else {
+                console.log('No songs found in database');
+            }
+        } catch (error) {
+            console.error('Error loading songs from DB:', error);
+        }
+    };
+
+    const handleFetchSongs = async () => {
+        setLoading(true);
+        try {
+            console.log('Starting API fetch...');
+            const apiSongs = await fetchSongs();
+            console.log('API fetch successful, received:', apiSongs.length, 'songs');
+
+            console.log('Storing songs in database...');
+            await storeSongs(apiSongs);
+            console.log('Songs stored successfully');
+
+            // Reload songs from the database to update the list
+            await loadSongsFromDB();
+        } catch (error) {
+            console.error('Error in fetch process:', error);
+            // Optionally, handle the error in the UI, e.g., show a toast message
+        } finally {
+            setLoading(false);
+            console.log('Fetch process completed');
+        }
+    };
 
     const renderSongItem = ({ item }: { item: Song }) => (
         <TouchableOpacity
@@ -151,18 +138,50 @@ export default function SongsList() {
 
     return (
         <View style={styles.container} >
-            <FlatList
-                data={mockSongs}
-                renderItem={renderSongItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContainer}
-                showsVerticalScrollIndicator={false}
-            />
+            <TouchableOpacity
+                style={[styles.fetchButton, loading && styles.fetchButtonDisabled]}
+                onPress={handleFetchSongs}
+                disabled={loading}
+            >
+                {loading ? (
+                    <ActivityIndicator color="white" size="small" />
+                ) : (
+                    <Text style={styles.fetchButtonText}>Fetch Songs</Text>
+                )}
+            </TouchableOpacity>
+
+            {songs.length > 0 ? (
+                <FlatList
+                    data={songs}
+                    renderItem={renderSongItem}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContainer}
+                    showsVerticalScrollIndicator={false}
+                />
+            ) : (
+                <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>No songs available</Text>
+                    <Text style={styles.emptySubtext}>
+                        {loading ? 'Loading...' : 'Press "Fetch Songs" to load'}
+                    </Text>
+                </View>
+            )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
+    fetchButton: {
+        margin: 16,
+        padding: 12,
+        backgroundColor: '#4169E1',
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    fetchButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+    },
     container: {
         flex: 1,
     },
@@ -225,5 +244,25 @@ const styles = StyleSheet.create({
     },
     lyricsChip: {
         height: 28,
+    },
+    emptyState: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 40,
+    },
+    emptyText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#666',
+        marginBottom: 8,
+    },
+    emptySubtext: {
+        fontSize: 14,
+        color: '#999',
+        textAlign: 'center',
+    },
+    fetchButtonDisabled: {
+        backgroundColor: '#9cb3e0',
     },
 });
