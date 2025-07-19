@@ -8,6 +8,7 @@ export const initDatabase = () => {
         CREATE TABLE IF NOT EXISTS songs (
             id TEXT PRIMARY KEY,
             title TEXT NOT NULL,
+            slug TEXT NOT NULL,
             youtube TEXT,
             description TEXT,
             song_writer TEXT,
@@ -26,12 +27,13 @@ export const storeSongs = (songs: Song[]): Promise<void> => {
 
                 songs.forEach(song => {
                     db.runSync(
-                        `INSERT INTO songs 
-                        (id, title, youtube, description, song_writer, style, lyrics, music_notes) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                        `INSERT INTO songs
+                        (id, title, slug, youtube, description, song_writer, style, lyrics, music_notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                         [
                             song.id,
                             song.title,
+                            song.slug,
                             song.youtube || null,
                             song.description || null,
                             song.song_writer || null,
@@ -43,6 +45,20 @@ export const storeSongs = (songs: Song[]): Promise<void> => {
                 });
             });
             resolve();
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
+
+export const getSongBySlug = (slug: string): Promise<Song | null> => {
+    return new Promise((resolve, reject) => {
+        try {
+            const result = db.getAllSync<Song>(
+                'SELECT * FROM songs WHERE slug = ? LIMIT 1;',
+                [slug]
+            );
+            resolve(result.length > 0 ? result[0] : null);
         } catch (error) {
             reject(error);
         }
