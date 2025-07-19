@@ -126,13 +126,15 @@ export default function SongDetailScreen() {
                         <Text variant="headlineMedium" style={styles.title}>
                             {song.title}
                         </Text>
-                        <Chip
-                            mode="outlined"
-                            style={[styles.styleChip, { backgroundColor: getStyleColor(song.style.name) }]}
-                            textStyle={{ color: '#fff' }}
-                        >
-                            {song.style.name}
-                        </Chip>
+                        {song.style?.name && (
+                            <Chip
+                                mode="outlined"
+                                style={[styles.styleChip, { backgroundColor: getStyleColor(song.style.name) }]}
+                                textStyle={{ color: '#fff' }}
+                            >
+                                {song.style.name}
+                            </Chip>
+                        )}
                     </View>
 
                     {song.song_writer && (

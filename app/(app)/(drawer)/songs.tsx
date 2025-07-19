@@ -80,13 +80,15 @@ export default function SongsList() {
                         <Text variant="titleLarge" style={styles.songTitle}>
                             {item.title}
                         </Text>
-                        <Chip
-                            mode="outlined"
-                            style={[styles.styleChip, { backgroundColor: getStyleColor(item.style.name) }]}
-                            textStyle={{ color: '#fff' }}
-                        >
-                            {item.style.name}
-                        </Chip>
+                        {item.style?.name && (
+                            <Chip
+                                mode="outlined"
+                                style={[styles.styleChip, { backgroundColor: getStyleColor(item.style.name) }]}
+                                textStyle={{ color: '#fff' }}
+                            >
+                                {item.style.name}
+                            </Chip>
+                        )}
                     </View>
 
                     {item.description && (

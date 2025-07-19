@@ -10,7 +10,7 @@ export default function Index() {
                 alignItems: "center"
             }}
         >
-            <Text variant="titleMedium">Welcome to OS Management System</Text>
+            <Text variant="titleMedium">Welcome to Calvary Song Book</Text>
         </View>
     );
 }

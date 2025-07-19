@@ -13,5 +13,6 @@ export default function RootLayout() {
   >
     <Stack.Screen redirect={true} name="index" />
     <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+    <Stack.Screen name="song/[slug]" options={{ title: "Song Detail" }} />
   </Stack>;
 }
