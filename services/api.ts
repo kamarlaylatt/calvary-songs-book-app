@@ -1,10 +1,6 @@
 import axios from 'axios';
-import Constants from 'expo-constants';
 
-// Use 10.0.2.2 to connect to host machine's localhost from Android emulator
-console.log('Loaded Constants:', Constants.expoConfig?.extra);
-// const API_BASE_URL = Constants.expoConfig?.extra?.API_BASE_URL;
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_BASE_URL = 'https://calvary-api.laravel.cloud/api';
 console.log('Using API_BASE_URL:', API_BASE_URL);
 
 export interface Song {
@@ -26,22 +22,88 @@ export interface Song {
     music_notes?: string;
 }
 
-export const fetchSongs = async (): Promise<Song[]> => {
+export interface PaginatedResponse {
+    current_page: number;
+    data: Song[];
+    first_page_url: string;
+    from: number;
+    last_page: number;
+    last_page_url: string;
+    next_page_url: string | null;
+    path: string;
+    per_page: number;
+    prev_page_url: string | null;
+    to: number;
+    total: number;
+}
+
+export interface FetchSongsParams {
+    search?: string;
+    style_id?: string;
+    limit?: number;
+    page?: number;
+}
+
+export const fetchSongs = async (params?: FetchSongsParams): Promise<PaginatedResponse | { data: Song[] }> => {
     try {
-        console.log(`Making API call to: ${API_BASE_URL}/songs`);
-        const response = await axios.get(`${API_BASE_URL}/songs`);
-        return response.data.data.map((song: any) => ({
-            id: song.id.toString(),
-            title: song.title,
-            slug: song.slug || `song-${song.id}`,
-            youtube: song.youtube,
-            description: song.description,
-            song_writer: song.song_writer,
-            style: song.style || { id: '', name: 'Unknown' },
-            categories: song.categories || [],
-            lyrics: song.lyrics,
-            music_notes: song.music_notes
-        }));
+        console.log(`Making API call to: ${API_BASE_URL}/songs`, params);
+
+        const queryParams = new URLSearchParams();
+        if (params?.search) queryParams.append('search', params.search);
+        if (params?.style_id) queryParams.append('style_id', params.style_id);
+        if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.page) queryParams.append('page', params.page.toString());
+
+        const url = `${API_BASE_URL}/songs${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+        console.log('Final URL:', url);
+
+        const response = await axios.get(url);
+
+        // Handle both paginated and simple array responses
+        if (params?.limit) {
+            // Paginated response
+            return {
+                current_page: response.data.current_page || 1,
+                data: response.data.data.map((song: any) => ({
+                    id: song.id.toString(),
+                    title: song.title,
+                    slug: song.slug || `song-${song.id}`,
+                    youtube: song.youtube,
+                    description: song.description,
+                    song_writer: song.song_writer,
+                    style: song.style || { id: '', name: 'Unknown' },
+                    categories: song.categories || [],
+                    lyrics: song.lyrics,
+                    music_notes: song.music_notes
+                })),
+                first_page_url: response.data.first_page_url || '',
+                from: response.data.from || 1,
+                last_page: response.data.last_page || 1,
+                last_page_url: response.data.last_page_url || '',
+                next_page_url: response.data.next_page_url || null,
+                path: response.data.path || '',
+                per_page: response.data.per_page || params.limit,
+                prev_page_url: response.data.prev_page_url || null,
+                to: response.data.to || response.data.data.length,
+                total: response.data.total || response.data.data.length
+            };
+        } else {
+            // Simple array response
+            return {
+                data: response.data.data.map((song: any) => ({
+                    id: song.id.toString(),
+                    title: song.title,
+                    slug: song.slug || `song-${song.id}`,
+                    youtube: song.youtube,
+                    description: song.description,
+                    song_writer: song.song_writer,
+                    style: song.style || { id: '', name: 'Unknown' },
+                    categories: song.categories || [],
+                    lyrics: song.lyrics,
+                    music_notes: song.music_notes
+                }))
+            };
+        }
     } catch (error) {
         console.error('Error fetching songs:', error);
         throw error;
@@ -58,7 +120,25 @@ export const fetchSongBySlug = async (slug: string): Promise<SongDetail> => {
     try {
         console.log(`Making API call to: ${API_BASE_URL}/songs/${slug}`);
         const response = await axios.get(`${API_BASE_URL}/songs/${slug}`);
-        const songData = response.data.data;
+
+        // Log full response for debugging
+        console.log('API Response:', response.data);
+
+        if (!response.data) {
+            throw new Error('Empty response from API');
+        }
+
+        // Handle both direct response and nested data response
+        const songData = response.data.data || response.data;
+
+        if (!songData) {
+            throw new Error('No song data found in response');
+        }
+
+        if (!songData.id) {
+            throw new Error('Invalid song data: missing id property');
+        }
+
         return {
             id: songData.id.toString(),
             code: songData.code || 0,

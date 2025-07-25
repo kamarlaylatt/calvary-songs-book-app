@@ -1,9 +1,8 @@
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Card, Chip, Text, useTheme } from 'react-native-paper';
-import { fetchSongs } from '../../../services/api';
-import { getAllSongs, initDatabase, storeSongs } from '../../../services/database';
+import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
 
 // Song interface based on required fields
 interface Song {
@@ -18,56 +17,81 @@ interface Song {
     music_notes?: string;
 }
 
+const ITEMS_PER_PAGE = 15;
 
 export default function SongsList() {
     const router = useRouter();
     const theme = useTheme();
     const [songs, setSongs] = useState<Song[]>([]);
     const [loading, setLoading] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [pagination, setPagination] = useState({
+        current_page: 1,
+        last_page: 1,
+        total: 0
+    });
 
     useEffect(() => {
-        initDatabase();
-        loadSongsFromDB();
+        loadSongs();
+        // Load initial data with a small delay to allow screen transition
+        // const timer = setTimeout(() => {
+        //     loadSongs();
+        // }, 100);
+
+        return () => {
+            // clearTimeout(timer);
+            // setSongs([]); // Clear songs on unmount
+        };
     }, []);
 
-    const loadSongsFromDB = async () => {
-        try {
-            console.log('Loading songs from database...');
-            const dbSongs = await getAllSongs();
-            // console.log('Retrieved songs from DB:', dbSongs);
-
-            if (dbSongs.length > 0) {
-                console.log('Updating state with', dbSongs.length, 'songs');
-                setSongs(dbSongs);
-            } else {
-                console.log('No songs found in database');
-            }
-        } catch (error) {
-            console.error('Error loading songs from DB:', error);
+    const loadSongs = async (page: number = 1, refresh: boolean = false) => {
+        if (page === 1 && !refresh) {
+            setLoading(true);
+        } else if (refresh) {
+            setRefreshing(true);
+        } else {
+            setLoadingMore(true);
         }
-    };
 
-    const handleFetchSongs = async () => {
-        setLoading(true);
         try {
-            console.log('Starting API fetch...');
-            const apiSongs = await fetchSongs();
-            console.log('API fetch successful, received:', apiSongs.length, 'songs');
+            const params: FetchSongsParams = {
+                limit: ITEMS_PER_PAGE,
+                page: page
+            };
 
-            console.log('Storing songs in database...');
-            await storeSongs(apiSongs);
-            console.log('Songs stored successfully');
+            const response = await fetchSongs(params) as PaginatedResponse;
 
-            // Reload songs from the database to update the list
-            await loadSongsFromDB();
+            if (page === 1 || refresh) {
+                setSongs(response.data);
+            } else {
+                setSongs(prevSongs => [...prevSongs, ...response.data]);
+            }
+
+            setPagination({
+                current_page: response.current_page,
+                last_page: response.last_page,
+                total: response.total
+            });
+
         } catch (error) {
-            console.error('Error in fetch process:', error);
-            // Optionally, handle the error in the UI, e.g., show a toast message
+            console.error('Error loading songs:', error);
         } finally {
             setLoading(false);
-            console.log('Fetch process completed');
+            setRefreshing(false);
+            setLoadingMore(false);
         }
     };
+
+    const handleRefresh = useCallback(() => {
+        loadSongs(1, true);
+    }, []);
+
+    const handleLoadMore = useCallback(() => {
+        if (pagination.current_page < pagination.last_page && !loadingMore) {
+            loadSongs(pagination.current_page + 1);
+        }
+    }, [pagination, loadingMore]);
 
     const renderSongItem = ({ item }: { item: Song }) => (
         <TouchableOpacity
@@ -139,20 +163,17 @@ export default function SongsList() {
         return colors[style] || '#6c757d';
     };
 
-    return (
-        <View style={styles.container} >
-            <TouchableOpacity
-                style={[styles.fetchButton, loading && styles.fetchButtonDisabled]}
-                onPress={handleFetchSongs}
-                disabled={loading}
-            >
-                {loading ? (
-                    <ActivityIndicator color="white" size="small" />
-                ) : (
-                    <Text style={styles.fetchButtonText}>Fetch Songs</Text>
-                )}
-            </TouchableOpacity>
+    const renderFooter = () => {
+        if (!loadingMore) return null;
+        return (
+            <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" />
+            </View>
+        );
+    };
 
+    return (
+        <View style={styles.container}>
             {songs.length > 0 ? (
                 <FlatList
                     data={songs}
@@ -160,12 +181,17 @@ export default function SongsList() {
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContainer}
                     showsVerticalScrollIndicator={false}
+                    onRefresh={handleRefresh}
+                    refreshing={refreshing}
+                    onEndReached={handleLoadMore}
+                    onEndReachedThreshold={0.5}
+                    ListFooterComponent={renderFooter}
                 />
             ) : (
                 <View style={styles.emptyState}>
                     <Text style={styles.emptyText}>No songs available</Text>
                     <Text style={styles.emptySubtext}>
-                        {loading ? 'Loading...' : 'Press "Fetch Songs" to load'}
+                        {loading ? 'Loading...' : 'Pull to refresh'}
                     </Text>
                 </View>
             )}
@@ -267,5 +293,9 @@ const styles = StyleSheet.create({
     },
     fetchButtonDisabled: {
         backgroundColor: '#9cb3e0',
+    },
+    loadingMore: {
+        paddingVertical: 20,
+        alignItems: 'center',
     },
 });

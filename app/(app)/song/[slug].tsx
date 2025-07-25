@@ -1,41 +1,40 @@
+import theme from '@/theme';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Card, Chip, Text, useTheme } from 'react-native-paper';
+import { Button, Card, Chip, Text, useTheme } from 'react-native-paper';
 import RenderHtml from 'react-native-render-html';
 import { SongDetail, fetchSongBySlug } from '../../../services/api';
-import { getSongBySlug } from '../../../services/database';
 
-export default function SongDetailScreen() {
+function SongDetailScreen() {
     const params = useLocalSearchParams<{ slug: string }>();
     const slug = typeof params.slug === 'string' ? params.slug : null;
     const theme = useTheme();
     const { width } = useWindowDimensions();
     const [song, setSong] = useState<SongDetail | null>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const loadSong = async () => {
+        if (!slug) return; // Early return if slug is null
+        try {
+            setLoading(true);
+            setError(null);
+            const songData = await fetchSongBySlug(slug);
+            setSong(songData);
+        } catch (error: any) {
+            console.error('Failed to load song:', error);
+            setError(error.message || 'Failed to load song details');
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         if (!slug) {
             setLoading(false);
             return;
         }
-
-        const loadSong = async () => {
-            try {
-                setLoading(true);
-                let songData = await getSongBySlug(slug);
-                if (!songData) {
-                    setLoading(true);
-                    songData = await fetchSongBySlug(slug);
-                }
-                setSong(songData as SongDetail);
-            } catch (error) {
-                console.error('Failed to load song:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         loadSong();
     }, [slug]);
 
@@ -50,7 +49,20 @@ export default function SongDetailScreen() {
     if (!song) {
         return (
             <View style={styles.container}>
-                <Text>Song not found</Text>
+                {error ? (
+                    <View style={styles.errorContainer}>
+                        <Text style={styles.errorText}>{error}</Text>
+                        <Button
+                            mode="contained"
+                            onPress={loadSong}
+                            style={styles.retryButton}
+                        >
+                            Retry
+                        </Button>
+                    </View>
+                ) : (
+                    <Text>Song not found</Text>
+                )}
             </View>
         );
     }
@@ -297,6 +309,19 @@ const styles = StyleSheet.create({
         padding: 16,
         borderRadius: 8,
         borderWidth: 1
+    },
+    errorContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+    },
+    errorText: {
+        color: theme.colors.error,
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    retryButton: {
+        marginTop: 16,
     },
     musicNotes: {
         color: '#666',
