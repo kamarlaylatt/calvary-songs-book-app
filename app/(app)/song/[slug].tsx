@@ -1,7 +1,7 @@
 import theme from '@/theme';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Button, Card, Chip, Text, useTheme } from 'react-native-paper';
 import RenderHtml from 'react-native-render-html';
 import { SongDetail, fetchSongBySlug } from '../../../services/api';
@@ -13,12 +13,17 @@ function SongDetailScreen() {
     const { width } = useWindowDimensions();
     const [song, setSong] = useState<SongDetail | null>(null);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const loadSong = async () => {
+    const loadSong = async (isRefresh = false) => {
         if (!slug) return; // Early return if slug is null
         try {
-            setLoading(true);
+            if (isRefresh) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
             setError(null);
             const songData = await fetchSongBySlug(slug);
             setSong(songData);
@@ -26,8 +31,16 @@ function SongDetailScreen() {
             console.error('Failed to load song:', error);
             setError(error.message || 'Failed to load song details');
         } finally {
-            setLoading(false);
+            if (isRefresh) {
+                setRefreshing(false);
+            } else {
+                setLoading(false);
+            }
         }
+    };
+
+    const onRefresh = () => {
+        loadSong(true);
     };
 
     useEffect(() => {
@@ -54,7 +67,7 @@ function SongDetailScreen() {
                         <Text style={styles.errorText}>{error}</Text>
                         <Button
                             mode="contained"
-                            onPress={loadSong}
+                            onPress={() => loadSong()}
                             style={styles.retryButton}
                         >
                             Retry
@@ -131,7 +144,17 @@ function SongDetailScreen() {
     ];
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView
+            style={styles.container}
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={[theme.colors.primary]}
+                    tintColor={theme.colors.primary}
+                />
+            }
+        >
             <Card style={styles.card}>
                 <Card.Content>
                     <View style={styles.header}>
@@ -328,3 +351,5 @@ const styles = StyleSheet.create({
         lineHeight: 24,
     },
 });
+
+export default SongDetailScreen;
