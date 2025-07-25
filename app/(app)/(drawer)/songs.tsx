@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Card, Chip, Text, useTheme } from 'react-native-paper';
+import { Card, Chip, Searchbar, Text, useTheme } from 'react-native-paper';
 import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
 
 // Song interface based on required fields
@@ -38,11 +38,27 @@ const SongsList = React.memo(() => {
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [pagination, setPagination] = useState({
         current_page: 1,
         last_page: 1,
         total: 0
     });
+
+    // Debounce search query
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
+    // Load songs when debounced search query changes
+    useEffect(() => {
+        loadSongs(1, false, debouncedSearchQuery);
+    }, [debouncedSearchQuery]);
 
     useEffect(() => {
         // Defer initial load to improve screen transition performance
@@ -55,7 +71,7 @@ const SongsList = React.memo(() => {
         };
     }, []);
 
-    const loadSongs = async (page: number = 1, refresh: boolean = false) => {
+    const loadSongs = async (page: number = 1, refresh: boolean = false, search?: string) => {
         if (page === 1 && !refresh) {
             setLoading(true);
         } else if (refresh) {
@@ -69,6 +85,15 @@ const SongsList = React.memo(() => {
                 limit: ITEMS_PER_PAGE,
                 page: page
             };
+
+            // Add search parameter if provided
+            if (search !== undefined) {
+                if (search.trim()) {
+                    params.search = search.trim();
+                }
+            } else if (debouncedSearchQuery.trim()) {
+                params.search = debouncedSearchQuery.trim();
+            }
 
             const response = await fetchSongs(params) as PaginatedResponse;
 
@@ -94,14 +119,22 @@ const SongsList = React.memo(() => {
     };
 
     const handleRefresh = useCallback(() => {
-        loadSongs(1, true);
-    }, []);
+        loadSongs(1, true, debouncedSearchQuery);
+    }, [debouncedSearchQuery]);
 
     const handleLoadMore = useCallback(() => {
         if (pagination.current_page < pagination.last_page && !loadingMore) {
-            loadSongs(pagination.current_page + 1);
+            loadSongs(pagination.current_page + 1, false, debouncedSearchQuery);
         }
-    }, [pagination, loadingMore]);
+    }, [pagination, loadingMore, debouncedSearchQuery]);
+
+    const handleSearchChange = useCallback((query: string) => {
+        setSearchQuery(query);
+    }, []);
+
+    const handleClearSearch = useCallback(() => {
+        setSearchQuery('');
+    }, []);
 
     const renderSongItem = useCallback(({ item }: { item: Song }) => (
         <TouchableOpacity
@@ -195,13 +228,27 @@ const SongsList = React.memo(() => {
 
     return (
         <View style={styles.container}>
+            <View style={styles.searchContainer}>
+                <Searchbar
+                    placeholder="Search songs by title or lyrics..."
+                    onChangeText={handleSearchChange}
+                    value={searchQuery}
+                    style={styles.searchBar}
+                    inputStyle={styles.searchInput}
+                    iconColor={theme.colors.primary}
+                    clearIcon={searchQuery ? 'close' : undefined}
+                    onClearIconPress={handleClearSearch}
+                />
+            </View>
             {songs.length > 0 ? (
                 <FlatList {...flatListProps} />
             ) : (
                 <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>No songs available</Text>
+                    <Text style={styles.emptyText}>
+                        {debouncedSearchQuery ? 'No songs found' : 'No songs available'}
+                    </Text>
                     <Text style={styles.emptySubtext}>
-                        {loading ? 'Loading...' : 'Pull to refresh'}
+                        {loading ? 'Loading...' : debouncedSearchQuery ? 'Try a different search term' : 'Pull to refresh'}
                     </Text>
                 </View>
             )}
@@ -227,6 +274,20 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
+    },
+    searchContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        // backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        // borderBottomColor: '#e0e0e0',
+    },
+    searchBar: {
+        elevation: 2,
+        borderRadius: 8,
+    },
+    searchInput: {
+        fontSize: 16,
     },
     header: {
         paddingHorizontal: 16,
