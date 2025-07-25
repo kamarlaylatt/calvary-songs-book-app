@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Card, Chip, Text, useTheme } from 'react-native-paper';
 import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
@@ -19,7 +19,19 @@ interface Song {
 
 const ITEMS_PER_PAGE = 15;
 
-export default function SongsList() {
+// Move getStyleColor outside component to avoid recreation on every render
+const getStyleColor = (style: string) => {
+    const colors: { [key: string]: string } = {
+        'Hymn': '#8B4513',
+        'Worship': '#4169E1',
+        'Gospel': '#228B22',
+        'Contemporary': '#FF6347',
+        'Traditional': '#8B008B',
+    };
+    return colors[style] || '#6c757d';
+};
+
+const SongsList = React.memo(() => {
     const router = useRouter();
     const theme = useTheme();
     const [songs, setSongs] = useState<Song[]>([]);
@@ -33,15 +45,13 @@ export default function SongsList() {
     });
 
     useEffect(() => {
-        loadSongs();
-        // Load initial data with a small delay to allow screen transition
-        // const timer = setTimeout(() => {
-        //     loadSongs();
-        // }, 100);
+        // Defer initial load to improve screen transition performance
+        const timer = setTimeout(() => {
+            loadSongs();
+        }, 50);
 
         return () => {
-            // clearTimeout(timer);
-            // setSongs([]); // Clear songs on unmount
+            clearTimeout(timer);
         };
     }, []);
 
@@ -93,7 +103,7 @@ export default function SongsList() {
         }
     }, [pagination, loadingMore]);
 
-    const renderSongItem = ({ item }: { item: Song }) => (
+    const renderSongItem = useCallback(({ item }: { item: Song }) => (
         <TouchableOpacity
             style={styles.songItem}
             onPress={() => router.push(`/song/${item.slug}`)}
@@ -108,7 +118,7 @@ export default function SongsList() {
                             <Chip
                                 mode="outlined"
                                 style={[styles.styleChip, { backgroundColor: getStyleColor(item.style.name) }]}
-                                textStyle={{ color: '#fff' }}
+                                textStyle={styles.chipText}
                             >
                                 {item.style.name}
                             </Chip>
@@ -150,43 +160,43 @@ export default function SongsList() {
                 </Card.Content>
             </Card>
         </TouchableOpacity>
-    );
+    ), [router]);
 
-    const getStyleColor = (style: string) => {
-        const colors: { [key: string]: string } = {
-            'Hymn': '#8B4513',
-            'Worship': '#4169E1',
-            'Gospel': '#228B22',
-            'Contemporary': '#FF6347',
-            'Traditional': '#8B008B',
-        };
-        return colors[style] || '#6c757d';
-    };
-
-    const renderFooter = () => {
+    const renderFooter = useCallback(() => {
         if (!loadingMore) return null;
         return (
             <View style={styles.loadingMore}>
                 <ActivityIndicator size="small" />
             </View>
         );
-    };
+    }, [loadingMore]);
+
+    // Memoize the key extractor function
+    const keyExtractor = useCallback((item: Song) => item.id, []);
+
+    // Memoize FlatList props for better performance
+    const flatListProps = useMemo(() => ({
+        data: songs,
+        renderItem: renderSongItem,
+        keyExtractor,
+        contentContainerStyle: styles.listContainer,
+        showsVerticalScrollIndicator: false,
+        onRefresh: handleRefresh,
+        refreshing: refreshing,
+        onEndReached: handleLoadMore,
+        onEndReachedThreshold: 0.5,
+        ListFooterComponent: renderFooter,
+        removeClippedSubviews: true,
+        maxToRenderPerBatch: 10,
+        updateCellsBatchingPeriod: 50,
+        initialNumToRender: 10,
+        windowSize: 10,
+    }), [songs, renderSongItem, keyExtractor, handleRefresh, refreshing, handleLoadMore, renderFooter]);
 
     return (
         <View style={styles.container}>
             {songs.length > 0 ? (
-                <FlatList
-                    data={songs}
-                    renderItem={renderSongItem}
-                    keyExtractor={(item) => item.id}
-                    contentContainerStyle={styles.listContainer}
-                    showsVerticalScrollIndicator={false}
-                    onRefresh={handleRefresh}
-                    refreshing={refreshing}
-                    onEndReached={handleLoadMore}
-                    onEndReachedThreshold={0.5}
-                    ListFooterComponent={renderFooter}
-                />
+                <FlatList {...flatListProps} />
             ) : (
                 <View style={styles.emptyState}>
                     <Text style={styles.emptyText}>No songs available</Text>
@@ -197,7 +207,11 @@ export default function SongsList() {
             )}
         </View>
     );
-}
+});
+
+SongsList.displayName = 'SongsList';
+
+export default SongsList;
 
 const styles = StyleSheet.create({
     fetchButton: {
@@ -297,5 +311,8 @@ const styles = StyleSheet.create({
     loadingMore: {
         paddingVertical: 20,
         alignItems: 'center',
+    },
+    chipText: {
+        color: '#fff',
     },
 });
