@@ -21,8 +21,8 @@ export default function Layout() {
             <Drawer
                 drawerContent={DrawerComponent}
                 screenOptions={{
-                    headerStyle: { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline },
-                    headerTintColor: theme.colors.onSurface,
+                    headerStyle: { backgroundColor: theme.colors.primary, borderBottomColor: theme.colors.outline },
+                    headerTintColor: theme.colors.onPrimary,
                 }}
                 screenLayout={customLayout}
             >
@@ -42,6 +42,12 @@ export default function Layout() {
                     name="about"
                     options={{
                         title: "About",
+                    }}
+                />
+                <Drawer.Screen
+                    name="settings"
+                    options={{
+                        title: "Settings",
                     }}
                 />
             </Drawer>

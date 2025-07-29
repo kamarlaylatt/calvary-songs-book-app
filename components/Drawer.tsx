@@ -47,6 +47,12 @@ export default function DrawerComponent() {
                 label="About"
                 onPress={() => router.push('/(app)/(drawer)/about')}
             />
+            <Drawer.Item
+                style={themedStyles.drawerItem}
+                icon="cog"
+                label="Settings"
+                onPress={() => router.push('/(app)/(drawer)/settings')}
+            />
         </View>
     )
 }
