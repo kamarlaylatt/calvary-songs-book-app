@@ -19,7 +19,7 @@ export const getTheme = (isDark?: boolean) => {
 };
 
 // Default export uses dark theme as requested
-const theme = lightTheme;
+const theme = darkTheme;
 
 export default theme;
 export { darkTheme, lightTheme };
