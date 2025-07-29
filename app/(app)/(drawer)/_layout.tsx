@@ -21,8 +21,8 @@ export default function Layout() {
             <Drawer
                 drawerContent={DrawerComponent}
                 screenOptions={{
-                    headerStyle: { backgroundColor: theme.colors.onPrimary, borderBottomColor: theme.colors.onPrimary },
-                    headerTintColor: theme.colors.onBackground,
+                    headerStyle: { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.outline },
+                    headerTintColor: theme.colors.onSurface,
                 }}
                 screenLayout={customLayout}
             >

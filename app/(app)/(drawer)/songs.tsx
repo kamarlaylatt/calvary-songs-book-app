@@ -20,20 +20,41 @@ interface Song {
 const ITEMS_PER_PAGE = 15;
 
 // Move getStyleColor outside component to avoid recreation on every render
-const getStyleColor = (style: string) => {
+const getStyleColor = (style: string, theme: any) => {
     const colors: { [key: string]: string } = {
-        'Hymn': '#8B4513',
-        'Worship': '#4169E1',
-        'Gospel': '#228B22',
-        'Contemporary': '#FF6347',
-        'Traditional': '#8B008B',
+        'Hymn': theme.colors.tertiary,
+        'Worship': theme.colors.primary,
+        'Gospel': theme.colors.secondary,
+        'Contemporary': theme.colors.error,
+        'Traditional': theme.colors.outline,
     };
-    return colors[style] || '#6c757d';
+    return colors[style] || theme.colors.onSurfaceVariant;
 };
 
 const SongsList = React.memo(() => {
     const router = useRouter();
     const theme = useTheme();
+
+    // Create theme-aware styles
+    const themedStyles = StyleSheet.create({
+        ...styles,
+        description: {
+            ...styles.description,
+            color: theme.colors.onSurfaceVariant,
+        },
+        songWriter: {
+            ...styles.songWriter,
+            color: theme.colors.onSurfaceVariant,
+        },
+        emptyText: {
+            ...styles.emptyText,
+            color: theme.colors.onSurfaceVariant,
+        },
+        emptySubtext: {
+            ...styles.emptySubtext,
+            color: theme.colors.onSurfaceVariant,
+        },
+    });
     const [songs, setSongs] = useState<Song[]>([]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -138,20 +159,20 @@ const SongsList = React.memo(() => {
 
     const renderSongItem = useCallback(({ item }: { item: Song }) => (
         <TouchableOpacity
-            style={styles.songItem}
+            style={themedStyles.songItem}
             onPress={() => router.push(`/song/${item.slug}`)}
         >
-            <Card style={styles.card}>
+            <Card style={themedStyles.card}>
                 <Card.Content>
-                    <View style={styles.songHeader}>
-                        <Text variant="titleLarge" style={styles.songTitle}>
+                    <View style={themedStyles.songHeader}>
+                        <Text variant="titleLarge" style={themedStyles.songTitle}>
                             {item.title}
                         </Text>
                         {item.style?.name && (
                             <Chip
                                 mode="outlined"
-                                style={[styles.styleChip, { backgroundColor: getStyleColor(item.style.name) }]}
-                                textStyle={styles.chipText}
+                                style={[themedStyles.styleChip, { backgroundColor: getStyleColor(item.style.name, theme) }]}
+                                textStyle={themedStyles.chipText}
                             >
                                 {item.style.name}
                             </Chip>
@@ -159,23 +180,23 @@ const SongsList = React.memo(() => {
                     </View>
 
                     {item.description && (
-                        <Text variant="bodyMedium" style={styles.description} numberOfLines={2}>
+                        <Text variant="bodyMedium" style={themedStyles.description} numberOfLines={2}>
                             {item.description}
                         </Text>
                     )}
 
                     {item.song_writer && (
-                        <Text variant="bodySmall" style={styles.songWriter}>
+                        <Text variant="bodySmall" style={themedStyles.songWriter}>
                             By {item.song_writer}
                         </Text>
                     )}
 
-                    <View style={styles.songFooter}>
+                    <View style={themedStyles.songFooter}>
                         {item.youtube && (
                             <Chip
                                 mode="outlined"
                                 icon="youtube"
-                                style={styles.youtubeChip}
+                                style={themedStyles.youtubeChip}
                             >
                                 Video
                             </Chip>
@@ -184,7 +205,7 @@ const SongsList = React.memo(() => {
                             <Chip
                                 mode="outlined"
                                 icon="text"
-                                style={styles.lyricsChip}
+                                style={themedStyles.lyricsChip}
                             >
                                 Lyrics
                             </Chip>
@@ -193,7 +214,7 @@ const SongsList = React.memo(() => {
                 </Card.Content>
             </Card>
         </TouchableOpacity>
-    ), [router]);
+    ), [router, themedStyles, theme]);
 
     const renderFooter = useCallback(() => {
         if (!loadingMore) return null;
@@ -212,7 +233,7 @@ const SongsList = React.memo(() => {
         data: songs,
         renderItem: renderSongItem,
         keyExtractor,
-        contentContainerStyle: styles.listContainer,
+        contentContainerStyle: themedStyles.listContainer,
         showsVerticalScrollIndicator: false,
         onRefresh: handleRefresh,
         refreshing: refreshing,
@@ -224,17 +245,17 @@ const SongsList = React.memo(() => {
         updateCellsBatchingPeriod: 50,
         initialNumToRender: 10,
         windowSize: 10,
-    }), [songs, renderSongItem, keyExtractor, handleRefresh, refreshing, handleLoadMore, renderFooter]);
+    }), [songs, renderSongItem, keyExtractor, handleRefresh, refreshing, handleLoadMore, renderFooter, themedStyles]);
 
     return (
-        <View style={styles.container}>
-            <View style={styles.searchContainer}>
+        <View style={themedStyles.container}>
+            <View style={themedStyles.searchContainer}>
                 <Searchbar
                     placeholder="Search songs by title or lyrics..."
                     onChangeText={handleSearchChange}
                     value={searchQuery}
-                    style={styles.searchBar}
-                    inputStyle={styles.searchInput}
+                    style={themedStyles.searchBar}
+                    inputStyle={themedStyles.searchInput}
                     iconColor={theme.colors.primary}
                     clearIcon={searchQuery ? 'close' : undefined}
                     onClearIconPress={handleClearSearch}
@@ -243,11 +264,11 @@ const SongsList = React.memo(() => {
             {songs.length > 0 ? (
                 <FlatList {...flatListProps} />
             ) : (
-                <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>
+                <View style={themedStyles.emptyState}>
+                    <Text style={themedStyles.emptyText}>
                         {debouncedSearchQuery ? 'No songs found' : 'No songs available'}
                     </Text>
-                    <Text style={styles.emptySubtext}>
+                    <Text style={themedStyles.emptySubtext}>
                         {loading ? 'Loading...' : debouncedSearchQuery ? 'Try a different search term' : 'Pull to refresh'}
                     </Text>
                 </View>
@@ -330,12 +351,10 @@ const styles = StyleSheet.create({
         borderRadius: 14,
     },
     description: {
-        color: '#666',
         marginBottom: 8,
         lineHeight: 20,
     },
     songWriter: {
-        color: '#888',
         fontStyle: 'italic',
         marginBottom: 12,
     },
@@ -358,12 +377,10 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: '#666',
         marginBottom: 8,
     },
     emptySubtext: {
         fontSize: 14,
-        color: '#999',
         textAlign: 'center',
     },
     fetchButtonDisabled: {
@@ -374,6 +391,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     chipText: {
-        color: '#fff',
+        color: '#fff', // White text on colored background is appropriate
     },
 });

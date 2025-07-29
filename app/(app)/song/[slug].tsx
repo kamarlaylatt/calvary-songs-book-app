@@ -1,4 +1,3 @@
-import theme from '@/theme';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
@@ -15,6 +14,44 @@ function SongDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Create theme-aware styles
+    const themedStyles = StyleSheet.create({
+        ...styles,
+        container: {
+            ...styles.container,
+            backgroundColor: theme.colors.background,
+        },
+        songWriter: {
+            ...styles.songWriter,
+            color: theme.colors.onSurfaceVariant,
+        },
+        description: {
+            ...styles.description,
+            color: theme.colors.onSurfaceVariant,
+        },
+        sectionTitle: {
+            ...styles.sectionTitle,
+            color: theme.colors.onSurface,
+        },
+        link: {
+            ...styles.link,
+            color: theme.colors.primary,
+        },
+        lyricsContainer: {
+            ...styles.lyricsContainer,
+            borderColor: theme.colors.outline,
+            backgroundColor: theme.colors.surfaceVariant,
+        },
+        errorText: {
+            ...styles.errorText,
+            color: theme.colors.error,
+        },
+        musicNotes: {
+            ...styles.musicNotes,
+            color: theme.colors.onSurfaceVariant,
+        },
+    });
 
     const loadSong = async (isRefresh = false) => {
         if (!slug) return; // Early return if slug is null
@@ -53,45 +90,45 @@ function SongDetailScreen() {
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" />
+            <View style={themedStyles.loadingContainer}>
+                <ActivityIndicator size="large" color={theme.colors.primary} />
             </View>
         );
     }
 
     if (!song) {
         return (
-            <View style={styles.container}>
+            <View style={themedStyles.container}>
                 {error ? (
-                    <View style={styles.errorContainer}>
-                        <Text style={styles.errorText}>{error}</Text>
+                    <View style={themedStyles.errorContainer}>
+                        <Text style={themedStyles.errorText}>{error}</Text>
                         <Button
                             mode="contained"
                             onPress={() => loadSong()}
-                            style={styles.retryButton}
+                            style={themedStyles.retryButton}
                         >
                             Retry
                         </Button>
                     </View>
                 ) : (
-                    <Text>Song not found</Text>
+                    <Text style={{ color: theme.colors.onSurface }}>Song not found</Text>
                 )}
             </View>
         );
     }
 
-    // RenderHtml styles configuration
+    // RenderHtml styles configuration using theme colors
     const tagsStyles = {
         body: {
-            whiteSpace: 'normal',
-            color: '#666',
+            whiteSpace: 'normal' as const,
+            color: theme.colors.onSurfaceVariant,
             fontSize: 16,
             lineHeight: 24,
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
         },
         p: {
             marginBottom: 16,
-            textAlign: 'left',
+            textAlign: 'left' as const,
         },
         br: {
             marginBottom: 8,
@@ -100,32 +137,32 @@ function SongDetailScreen() {
             marginBottom: 12,
         },
         span: {
-            color: '#666',
+            color: theme.colors.onSurfaceVariant,
         },
         strong: {
-            fontWeight: 'bold',
-            color: '#333',
+            fontWeight: 'bold' as const,
+            color: theme.colors.onSurface,
         },
         em: {
-            fontStyle: 'italic',
+            fontStyle: 'italic' as const,
         },
         h1: {
             fontSize: 20,
-            fontWeight: 'bold',
+            fontWeight: 'bold' as const,
             marginBottom: 12,
-            color: '#333',
+            color: theme.colors.onSurface,
         },
         h2: {
             fontSize: 18,
-            fontWeight: 'bold',
+            fontWeight: 'bold' as const,
             marginBottom: 10,
-            color: '#333',
+            color: theme.colors.onSurface,
         },
         h3: {
             fontSize: 16,
-            fontWeight: 'bold',
+            fontWeight: 'bold' as const,
             marginBottom: 8,
-            color: '#333',
+            color: theme.colors.onSurface,
         },
     };
 
@@ -145,7 +182,7 @@ function SongDetailScreen() {
 
     return (
         <ScrollView
-            style={styles.container}
+            style={themedStyles.container}
             refreshControl={
                 <RefreshControl
                     refreshing={refreshing}
@@ -155,16 +192,16 @@ function SongDetailScreen() {
                 />
             }
         >
-            <Card style={styles.card}>
+            <Card style={themedStyles.card}>
                 <Card.Content>
-                    <View style={styles.header}>
-                        <Text variant="headlineMedium" style={styles.title}>
+                    <View style={themedStyles.header}>
+                        <Text variant="headlineMedium" style={themedStyles.title}>
                             {song.title}
                         </Text>
                         {song.style?.name && (
                             <Chip
                                 mode="outlined"
-                                style={[styles.styleChip, { backgroundColor: getStyleColor(song.style.name) }]}
+                                style={[themedStyles.styleChip, { backgroundColor: getStyleColor(song.style.name, theme) }]}
                                 textStyle={{ color: '#fff' }}
                             >
                                 {song.style.name}
@@ -173,39 +210,39 @@ function SongDetailScreen() {
                     </View>
 
                     {song.song_writer && (
-                        <Text variant="titleSmall" style={styles.songWriter}>
+                        <Text variant="titleSmall" style={themedStyles.songWriter}>
                             By {song.song_writer}
                         </Text>
                     )}
 
                     {song.description && (
-                        <Text variant="bodyMedium" style={styles.description}>
+                        <Text variant="bodyMedium" style={themedStyles.description}>
                             {song.description}
                         </Text>
                     )}
 
                     {song.youtube && (
-                        <View style={styles.section}>
-                            <Text variant="titleMedium" style={styles.sectionTitle}>
+                        <View style={themedStyles.section}>
+                            <Text variant="titleMedium" style={themedStyles.sectionTitle}>
                                 YouTube Link
                             </Text>
-                            <Text variant="bodyMedium" style={styles.link}>
+                            <Text variant="bodyMedium" style={themedStyles.link}>
                                 {song.youtube}
                             </Text>
                         </View>
                     )}
 
                     {song.categories.length > 0 && (
-                        <View style={styles.section}>
-                            <Text variant="titleMedium" style={styles.sectionTitle}>
+                        <View style={themedStyles.section}>
+                            <Text variant="titleMedium" style={themedStyles.sectionTitle}>
                                 Categories
                             </Text>
-                            <View style={styles.chipContainer}>
+                            <View style={themedStyles.chipContainer}>
                                 {song.categories.map(category => (
                                     <Chip
                                         key={category.id}
                                         mode="outlined"
-                                        style={styles.categoryChip}
+                                        style={themedStyles.categoryChip}
                                     >
                                         {category.name}
                                     </Chip>
@@ -215,24 +252,12 @@ function SongDetailScreen() {
                     )}
 
                     {song.lyrics && (
-                        <View style={styles.section}>
-                            <View style={styles.lyricsContainer}>
+                        <View style={themedStyles.section}>
+                            <View style={themedStyles.lyricsContainer}>
                                 <RenderHtml
                                     contentWidth={width - 64} // Account for card padding and container padding
                                     source={{ html: song.lyrics }}
-                                    tagsStyles={{
-                                        body: {
-                                            whiteSpace: 'normal',
-                                            color: '#ffffff',
-                                            fontSize: 16,
-                                            lineHeight: 24,
-                                            fontFamily: 'Roboto'
-                                        },
-                                        p: { marginBottom: 10, textAlign: 'left' },
-                                        br: { marginBottom: 10 },
-                                        div: { marginBottom: 10 },
-                                        // Add other tag styles as needed
-                                    }}
+                                    tagsStyles={tagsStyles}
                                     systemFonts={['Roboto']}
                                     enableExperimentalMarginCollapsing={true}
                                     renderersProps={{
@@ -246,11 +271,11 @@ function SongDetailScreen() {
                     )}
 
                     {song.music_notes && (
-                        <View style={styles.section}>
-                            <Text variant="titleMedium" style={styles.sectionTitle}>
+                        <View style={themedStyles.section}>
+                            <Text variant="titleMedium" style={themedStyles.sectionTitle}>
                                 Music Notes
                             </Text>
-                            <Text variant="bodyMedium" style={styles.musicNotes}>
+                            <Text variant="bodyMedium" style={themedStyles.musicNotes}>
                                 {song.music_notes}
                             </Text>
                         </View>
@@ -261,15 +286,15 @@ function SongDetailScreen() {
     );
 }
 
-const getStyleColor = (style: string) => {
+const getStyleColor = (style: string, theme: any) => {
     const colors: { [key: string]: string } = {
-        'Hymn': '#8B4513',
-        'Worship': '#4169E1',
-        'Gospel': '#228B22',
-        'Contemporary': '#FF6347',
-        'Traditional': '#8B008B',
+        'Hymn': theme.colors.tertiary,
+        'Worship': theme.colors.primary,
+        'Gospel': theme.colors.secondary,
+        'Contemporary': theme.colors.error,
+        'Traditional': theme.colors.outline,
     };
-    return colors[style] || '#6c757d';
+    return colors[style] || theme.colors.onSurfaceVariant;
 };
 
 const styles = StyleSheet.create({
@@ -301,12 +326,10 @@ const styles = StyleSheet.create({
         borderRadius: 16,
     },
     songWriter: {
-        color: '#888',
         fontStyle: 'italic',
         marginBottom: 12,
     },
     description: {
-        color: '#666',
         marginBottom: 16,
         lineHeight: 22,
     },
@@ -315,10 +338,9 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         marginBottom: 8,
-        color: '#333',
     },
     link: {
-        color: '#4169E1',
+        textDecorationLine: 'underline',
     },
     chipContainer: {
         flexDirection: 'row',
@@ -331,7 +353,7 @@ const styles = StyleSheet.create({
     lyricsContainer: {
         padding: 16,
         borderRadius: 8,
-        borderWidth: 1
+        borderWidth: 1,
     },
     errorContainer: {
         alignItems: 'center',
@@ -339,7 +361,6 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     errorText: {
-        color: theme.colors.error,
         marginBottom: 16,
         textAlign: 'center',
     },
@@ -347,7 +368,6 @@ const styles = StyleSheet.create({
         marginTop: 16,
     },
     musicNotes: {
-        color: '#666',
         lineHeight: 24,
     },
 });

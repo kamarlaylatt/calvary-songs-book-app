@@ -5,32 +5,52 @@ import { Card, Text, useTheme } from 'react-native-paper';
 export default function AboutScreen() {
     const theme = useTheme();
 
+    const themedStyles = StyleSheet.create({
+        ...styles,
+        scrollView: {
+            backgroundColor: theme.colors.background,
+            flex: 1,
+        },
+        title: {
+            ...styles.title,
+            color: theme.colors.onSurface,
+        },
+        description: {
+            ...styles.description,
+            color: theme.colors.onSurfaceVariant,
+        },
+        featureItem: {
+            ...styles.featureItem,
+            color: theme.colors.onSurface,
+        },
+    });
+
     return (
-        <ScrollView style={{ backgroundColor: theme.colors.background, flex: 1 }}>
-            <View style={styles.container}>
-                <Card style={styles.card}>
+        <ScrollView style={themedStyles.scrollView}>
+            <View style={themedStyles.container}>
+                <Card style={themedStyles.card}>
                     <Card.Content>
-                        <Text variant="headlineMedium" style={styles.title}>
+                        <Text variant="headlineMedium" style={themedStyles.title}>
                             About Calvary Songs Book
                         </Text>
 
-                        <Text variant="bodyMedium" style={styles.description}>
+                        <Text variant="bodyMedium" style={themedStyles.description}>
                             This application is designed to help worship teams and congregations
                             access songs easily during services and personal devotion times.
                         </Text>
 
-                        <Text variant="bodyMedium" style={styles.description}>
+                        <Text variant="bodyMedium" style={themedStyles.description}>
                             Features include:
                         </Text>
 
-                        <View style={styles.featureList}>
-                            <Text style={styles.featureItem}>• Complete song lyrics</Text>
-                            <Text style={styles.featureItem}>• Chord charts and music notation</Text>
-                            <Text style={styles.featureItem}>• YouTube links for song references</Text>
-                            <Text style={styles.featureItem}>• Categorized by style and theme</Text>
+                        <View style={themedStyles.featureList}>
+                            <Text style={themedStyles.featureItem}>• Complete song lyrics</Text>
+                            <Text style={themedStyles.featureItem}>• Chord charts and music notation</Text>
+                            <Text style={themedStyles.featureItem}>• YouTube links for song references</Text>
+                            <Text style={themedStyles.featureItem}>• Categorized by style and theme</Text>
                         </View>
 
-                        <Text variant="bodyMedium" style={styles.description}>
+                        <Text variant="bodyMedium" style={themedStyles.description}>
                             Version: 1.0.0
                         </Text>
                     </Card.Content>
