@@ -69,6 +69,7 @@ This documentation provides details about the available API endpoints for users.
 - **Query Parameters:**
   - `search` (optional): A string to search for in the song title or lyrics
   - `style_id` (optional): Filter songs by style ID
+  - `category_id` (optional): Filter songs by category ID
   - `limit` (optional): Number of items per page (enables pagination)
   
 #### Paginated Response (when 'limit' parameter is provided):
@@ -227,3 +228,27 @@ This documentation provides details about the available API endpoints for users.
     "created_at": "2025-07-17T05:50:20.000000Z",
     "updated_at": "2025-07-17T05:50:20.000000Z"
   }
+
+## Search Filters
+
+### Get Search Filters
+- **Endpoint:** `GET /api/search-filters`
+- **Description:** Retrieves all categories and styles for search screen filters.
+- **Response:** A JSON object containing both categories and styles:
+  ```json
+  {
+    "categories": [
+      {
+        "id": 1,
+        "name": "Category Name",
+        "slug": "category-name"
+      }
+    ],
+    "styles": [
+      {
+        "id": 1,
+        "name": "Style Name"
+      }
+    ]
+  }
+  ```
