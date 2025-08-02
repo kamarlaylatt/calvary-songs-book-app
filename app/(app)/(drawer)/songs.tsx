@@ -48,6 +48,14 @@ const SongsList = React.memo(() => {
             ...styles.songWriter,
             color: theme.colors.onSurfaceVariant,
         },
+        indicatorText: {
+            ...styles.indicatorText,
+            color: theme.colors.onSurfaceVariant,
+        },
+        indicator: {
+            ...styles.indicator,
+            backgroundColor: theme.colors.surfaceVariant,
+        },
         emptyText: {
             ...styles.emptyText,
             color: theme.colors.onSurfaceVariant,
@@ -218,14 +226,23 @@ const SongsList = React.memo(() => {
             onPress={() => router.push(`/song/${item.slug}`)}
         >
             <Card style={themedStyles.card}>
-                <Card.Content>
+                <Card.Content style={themedStyles.cardContent}>
+                    {/* Header with title and style */}
                     <View style={themedStyles.songHeader}>
-                        <Text variant="titleLarge" style={themedStyles.songTitle}>
-                            {item.title}
-                        </Text>
+                        <View style={themedStyles.titleContainer}>
+                            <Text variant="titleMedium" style={themedStyles.songTitle} numberOfLines={2}>
+                                {item.title}
+                            </Text>
+                            {item.song_writer && (
+                                <Text variant="bodySmall" style={themedStyles.songWriter}>
+                                    {item.song_writer}
+                                </Text>
+                            )}
+                        </View>
                         {item.style?.name && (
                             <Chip
                                 mode="outlined"
+                                compact
                                 style={[themedStyles.styleChip, { backgroundColor: getStyleColor(item.style.name, theme) }]}
                                 textStyle={themedStyles.chipText}
                             >
@@ -234,53 +251,77 @@ const SongsList = React.memo(() => {
                         )}
                     </View>
 
+                    {/* Description */}
                     {item.description && (
-                        <Text variant="bodyMedium" style={themedStyles.description} numberOfLines={2}>
+                        <Text variant="bodySmall" style={themedStyles.description} numberOfLines={2}>
                             {item.description}
                         </Text>
                     )}
 
-                    {item.song_writer && (
-                        <Text variant="bodySmall" style={themedStyles.songWriter}>
-                            By {item.song_writer}
-                        </Text>
-                    )}
-
-                    {/* Categories */}
+                    {/* Categories - Show max 3, then +N more */}
                     {item.categories && item.categories.length > 0 && (
                         <View style={themedStyles.categoriesContainer}>
-                            {item.categories.map((category) => (
+                            {item.categories.slice(0, 3).map((category) => (
                                 <Chip
                                     key={`${item.id}-${category.id}`}
                                     mode="outlined"
+                                    compact
                                     style={themedStyles.categoryChip}
                                     textStyle={themedStyles.categoryChipText}
                                 >
                                     {category.name}
                                 </Chip>
                             ))}
+                            {item.categories.length > 3 && (
+                                <Chip
+                                    mode="outlined"
+                                    compact
+                                    style={themedStyles.categoryChip}
+                                    textStyle={themedStyles.categoryChipText}
+                                >
+                                    +{item.categories.length - 3} more
+                                </Chip>
+                            )}
                         </View>
                     )}
 
+                    {/* Footer with content indicators */}
                     <View style={themedStyles.songFooter}>
-                        {item.youtube && (
-                            <Chip
-                                mode="outlined"
-                                icon="youtube"
-                                style={themedStyles.youtubeChip}
-                            >
-                                Video
-                            </Chip>
-                        )}
-                        {item.lyrics && (
-                            <Chip
-                                mode="outlined"
-                                icon="text"
-                                style={themedStyles.lyricsChip}
-                            >
-                                Lyrics
-                            </Chip>
-                        )}
+                        <View style={themedStyles.contentIndicators}>
+                            {item.lyrics && (
+                                <Chip
+                                    mode="outlined"
+                                    compact
+                                    icon="text"
+                                    style={themedStyles.contentChip}
+                                    textStyle={themedStyles.contentChipText}
+                                >
+                                    Lyrics
+                                </Chip>
+                            )}
+                            {item.music_notes && (
+                                <Chip
+                                    mode="outlined"
+                                    compact
+                                    icon="music-note"
+                                    style={themedStyles.contentChip}
+                                    textStyle={themedStyles.contentChipText}
+                                >
+                                    Notes
+                                </Chip>
+                            )}
+                            {item.youtube && (
+                                <Chip
+                                    mode="outlined"
+                                    compact
+                                    icon="youtube"
+                                    style={themedStyles.contentChip}
+                                    textStyle={themedStyles.contentChipText}
+                                >
+                                    Video
+                                </Chip>
+                            )}
+                        </View>
                     </View>
                 </Card.Content>
             </Card>
@@ -418,11 +459,15 @@ const styles = StyleSheet.create({
     },
     songItem: {
         marginHorizontal: 16,
-        marginVertical: 8,
+        marginVertical: 6,
     },
     card: {
         elevation: 2,
         borderRadius: 12,
+    },
+    cardContent: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
     },
     songHeader: {
         flexDirection: 'row',
@@ -430,25 +475,47 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         marginBottom: 8,
     },
-    songTitle: {
+    titleContainer: {
         flex: 1,
-        marginRight: 8,
+        marginRight: 12,
+    },
+    songTitle: {
+        fontWeight: '600',
+        marginBottom: 2,
     },
     styleChip: {
-        height: 28,
-        borderRadius: 14,
+        height: 32,
+        borderRadius: 16,
+        alignSelf: 'flex-start',
     },
     description: {
         marginBottom: 8,
-        lineHeight: 20,
+        lineHeight: 18,
+        opacity: 0.8,
     },
     songWriter: {
         fontStyle: 'italic',
-        marginBottom: 12,
+        fontSize: 12,
+        opacity: 0.7,
     },
     songFooter: {
+        marginTop: 8,
+    },
+    contentIndicators: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 8,
+    },
+    indicator: {
+        backgroundColor: 'rgba(0,0,0,0.05)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    indicatorText: {
+        fontSize: 11,
+        fontWeight: '500',
+        opacity: 0.8,
     },
     youtubeChip: {
         height: 28
@@ -479,20 +546,32 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     chipText: {
-        color: '#fff', // White text on colored background is appropriate
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: '600',
     },
     categoriesContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 6,
+        gap: 4,
         marginBottom: 8,
     },
     categoryChip: {
-        height: 24,
-        borderRadius: 12,
-        marginBottom: 4,
+        height: 28,
+        borderRadius: 14,
+        marginBottom: 2,
     },
     categoryChipText: {
-        fontSize: 12,
+        fontSize: 10,
+        fontWeight: '500',
+    },
+    contentChip: {
+        height: 30,
+        borderRadius: 15,
+        marginRight: 4,
+    },
+    contentChipText: {
+        fontSize: 10,
+        fontWeight: '500',
     },
 });

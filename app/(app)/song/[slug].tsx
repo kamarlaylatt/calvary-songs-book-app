@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import { Button, Card, Chip, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Button, Card, Chip, Divider, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import RenderHtml from 'react-native-render-html';
 import { SongDetail, fetchSongBySlug } from '../../../services/api';
 
@@ -34,13 +34,12 @@ function SongDetailScreen() {
             ...styles.sectionTitle,
             color: theme.colors.onSurface,
         },
-        link: {
-            ...styles.link,
-            color: theme.colors.primary,
-        },
         lyricsContainer: {
             ...styles.lyricsContainer,
-            borderColor: theme.colors.outline,
+            // backgroundColor: theme.colors.surfaceVariant,
+        },
+        notesContainer: {
+            ...styles.notesContainer,
             backgroundColor: theme.colors.surfaceVariant,
         },
         errorText: {
@@ -50,6 +49,14 @@ function SongDetailScreen() {
         musicNotes: {
             ...styles.musicNotes,
             color: theme.colors.onSurfaceVariant,
+        },
+        codeChip: {
+            ...styles.codeChip,
+            backgroundColor: theme.colors.primaryContainer,
+        },
+        codeText: {
+            ...styles.codeText,
+            color: theme.colors.onPrimaryContainer,
         },
     });
 
@@ -73,6 +80,19 @@ function SongDetailScreen() {
             } else {
                 setLoading(false);
             }
+        }
+    };
+
+    const handleYouTubePress = async (url: string) => {
+        try {
+            const supported = await Linking.canOpenURL(url);
+            if (supported) {
+                await Linking.openURL(url);
+            } else {
+                Alert.alert('Error', 'Unable to open YouTube link');
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Unable to open YouTube link');
         }
     };
 
@@ -191,97 +211,155 @@ function SongDetailScreen() {
                     tintColor={theme.colors.primary}
                 />
             }
+            showsVerticalScrollIndicator={false}
         >
-            <Card style={themedStyles.card}>
-                <Card.Content>
-                    <View style={themedStyles.header}>
+            {/* Header Card */}
+            <Card style={themedStyles.headerCard} elevation={3}>
+                <Card.Content style={themedStyles.headerContent}>
+                    <View style={themedStyles.titleSection}>
                         <Text variant="headlineMedium" style={themedStyles.title}>
                             {song.title}
                         </Text>
+                        {song.code && (
+                            <Surface style={themedStyles.codeChip} elevation={1}>
+                                <Text variant="labelMedium" style={themedStyles.codeText}>
+                                    #{song.code}
+                                </Text>
+                            </Surface>
+                        )}
+                    </View>
+
+                    {song.song_writer && (
+                        <View style={themedStyles.writerSection}>
+                            <Text variant="titleMedium" style={themedStyles.songWriter}>
+                                {song.song_writer}
+                            </Text>
+                        </View>
+                    )}
+
+                    {song.description && (
+                        <Text variant="bodyLarge" style={themedStyles.description}>
+                            {song.description}
+                        </Text>
+                    )}
+
+                    <View style={themedStyles.metaSection}>
                         {song.style?.name && (
                             <Chip
-                                mode="outlined"
+                                mode="flat"
                                 style={[themedStyles.styleChip, { backgroundColor: getStyleColor(song.style.name, theme) }]}
-                                textStyle={{ color: '#fff' }}
+                                textStyle={themedStyles.styleChipText}
+                                icon="music"
                             >
                                 {song.style.name}
                             </Chip>
                         )}
                     </View>
-
-                    {song.song_writer && (
-                        <Text variant="titleSmall" style={themedStyles.songWriter}>
-                            By {song.song_writer}
-                        </Text>
-                    )}
-
-                    {song.description && (
-                        <Text variant="bodyMedium" style={themedStyles.description}>
-                            {song.description}
-                        </Text>
-                    )}
-
-                    {song.youtube && (
-                        <View style={themedStyles.section}>
-                            <Text variant="titleMedium" style={themedStyles.sectionTitle}>
-                                YouTube Link
-                            </Text>
-                            <Text variant="bodyMedium" style={themedStyles.link}>
-                                {song.youtube}
-                            </Text>
-                        </View>
-                    )}
-
-                    {song.categories.length > 0 && (
-                        <View style={themedStyles.section}>
-                            <Text variant="titleMedium" style={themedStyles.sectionTitle}>
-                                Categories
-                            </Text>
-                            <View style={themedStyles.chipContainer}>
-                                {song.categories.map(category => (
-                                    <Chip
-                                        key={category.id}
-                                        mode="outlined"
-                                        style={themedStyles.categoryChip}
-                                    >
-                                        {category.name}
-                                    </Chip>
-                                ))}
-                            </View>
-                        </View>
-                    )}
-
-                    {song.lyrics && (
-                        <View style={themedStyles.section}>
-                            <View style={themedStyles.lyricsContainer}>
-                                <RenderHtml
-                                    contentWidth={width - 64} // Account for card padding and container padding
-                                    source={{ html: song.lyrics }}
-                                    tagsStyles={tagsStyles}
-                                    systemFonts={['Roboto']}
-                                    enableExperimentalMarginCollapsing={true}
-                                    renderersProps={{
-                                        img: {
-                                            enableExperimentalPercentWidth: true,
-                                        },
-                                    }}
-                                />
-                            </View>
-                        </View>
-                    )}
-
-                    {song.music_notes && (
-                        <View style={themedStyles.section}>
-                            <Text variant="titleMedium" style={themedStyles.sectionTitle}>
-                                Music Notes
-                            </Text>
-                            <Text variant="bodyMedium" style={themedStyles.musicNotes}>
-                                {song.music_notes}
-                            </Text>
-                        </View>
-                    )}
                 </Card.Content>
             </Card>
+
+            {/* Categories Card */}
+            {song.categories.length > 0 && (
+                <Card style={themedStyles.sectionCard} elevation={2}>
+                    <Card.Content>
+                        <View style={themedStyles.sectionHeader}>
+                            <Text variant="titleLarge" style={themedStyles.sectionTitle}>
+                                Categories
+                            </Text>
+                        </View>
+                        <View style={themedStyles.chipContainer}>
+                            {song.categories.map(category => (
+                                <Chip
+                                    key={category.id}
+                                    mode="outlined"
+                                    style={themedStyles.categoryChip}
+                                    icon="tag"
+                                >
+                                    {category.name}
+                                </Chip>
+                            ))}
+                        </View>
+                    </Card.Content>
+                </Card>
+            )}
+
+            {/* YouTube Card */}
+            {song.youtube && (
+                <Card style={themedStyles.sectionCard} elevation={2}>
+                    <Card.Content>
+                        <View style={themedStyles.sectionHeader}>
+                            <Text variant="titleLarge" style={themedStyles.sectionTitle}>
+                                Watch on YouTube
+                            </Text>
+                            <IconButton
+                                icon="play-circle"
+                                iconColor={theme.colors.primary}
+                                size={24}
+                                onPress={() => handleYouTubePress(song.youtube!)}
+                            />
+                        </View>
+                        <Button
+                            mode="contained-tonal"
+                            onPress={() => handleYouTubePress(song.youtube!)}
+                            icon="youtube"
+                            style={themedStyles.youtubeButton}
+                            contentStyle={themedStyles.youtubeButtonContent}
+                        >
+                            Open in YouTube
+                        </Button>
+                    </Card.Content>
+                </Card>
+            )}
+
+            {/* Lyrics Card */}
+            {song.lyrics && (
+                <Card style={themedStyles.sectionCard} elevation={2}>
+                    <Card.Content>
+                        <View style={themedStyles.sectionHeader}>
+                            <Text variant="titleLarge" style={themedStyles.sectionTitle}>
+                                Lyrics
+                            </Text>
+                        </View>
+                        <Divider style={themedStyles.divider} />
+                        {/* <Surface style={themedStyles.lyricsContainer} elevation={1}> */}
+                        <RenderHtml
+                            contentWidth={width - 80} // Account for card padding and container padding
+                            source={{ html: song.lyrics }}
+                            tagsStyles={tagsStyles}
+                            systemFonts={systemFonts}
+                            enableExperimentalMarginCollapsing={true}
+                            renderersProps={{
+                                img: {
+                                    enableExperimentalPercentWidth: true,
+                                },
+                            }}
+                        />
+                        {/* </Surface> */}
+                    </Card.Content>
+                </Card>
+            )}
+
+            {/* Music Notes Card */}
+            {song.music_notes && (
+                <Card style={themedStyles.sectionCard} elevation={2}>
+                    <Card.Content>
+                        <View style={themedStyles.sectionHeader}>
+                            <Text variant="titleLarge" style={themedStyles.sectionTitle}>
+                                Music Notes
+                            </Text>
+                        </View>
+                        <Divider style={themedStyles.divider} />
+                        <Surface style={themedStyles.notesContainer} elevation={1}>
+                            <Text variant="bodyLarge" style={themedStyles.musicNotes}>
+                                {song.music_notes}
+                            </Text>
+                        </Surface>
+                    </Card.Content>
+                </Card>
+            )}
+
+            {/* Bottom spacing */}
+            <View style={themedStyles.bottomSpacing} />
         </ScrollView>
     );
 }
@@ -301,59 +379,108 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         padding: 16,
+        paddingTop: 8,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    card: {
-        elevation: 2,
-        borderRadius: 12,
+    headerCard: {
+        borderRadius: 16,
+        marginBottom: 16,
     },
-    header: {
+    headerContent: {
+        paddingVertical: 20,
+    },
+    titleSection: {
         flexDirection: 'row',
+        alignItems: 'flex-start',
         justifyContent: 'space-between',
-        alignItems: 'center',
         marginBottom: 12,
     },
     title: {
         flex: 1,
-        marginRight: 8,
+        marginRight: 12,
+        fontWeight: '700',
     },
-    styleChip: {
-        height: 32,
-        borderRadius: 16,
+    codeChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 20,
+        alignSelf: 'flex-start',
+    },
+    codeText: {
+        fontWeight: '600',
+    },
+    writerSection: {
+        marginBottom: 16,
     },
     songWriter: {
         fontStyle: 'italic',
-        marginBottom: 12,
+        fontWeight: '500',
     },
     description: {
-        marginBottom: 16,
-        lineHeight: 22,
+        marginBottom: 20,
+        lineHeight: 26,
     },
-    section: {
-        marginBottom: 24,
+    metaSection: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+    },
+    styleChip: {
+        height: 36,
+        borderRadius: 18,
+    },
+    styleChipText: {
+        color: '#fff',
+        fontWeight: '600',
+    },
+    sectionCard: {
+        borderRadius: 12,
+        marginBottom: 16,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 12,
     },
     sectionTitle: {
-        marginBottom: 8,
+        fontWeight: '600',
     },
-    link: {
-        textDecorationLine: 'underline',
+    divider: {
+        marginBottom: 16,
     },
     chipContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 8,
+        marginTop: 4,
     },
     categoryChip: {
-        height: 32,
+        height: 36,
+        borderRadius: 18,
+    },
+    youtubeButton: {
+        marginTop: 8,
+    },
+    youtubeButtonContent: {
+        paddingVertical: 8,
     },
     lyricsContainer: {
-        padding: 16,
-        borderRadius: 8,
-        borderWidth: 1,
+        padding: 20,
+        borderRadius: 12,
+        marginTop: 4,
+    },
+    notesContainer: {
+        padding: 20,
+        borderRadius: 12,
+        marginTop: 4,
+    },
+    musicNotes: {
+        lineHeight: 28,
     },
     errorContainer: {
         alignItems: 'center',
@@ -367,8 +494,8 @@ const styles = StyleSheet.create({
     retryButton: {
         marginTop: 16,
     },
-    musicNotes: {
-        lineHeight: 24,
+    bottomSpacing: {
+        height: 20,
     },
 });
 
