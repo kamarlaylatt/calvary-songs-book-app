@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Card, Chip, Searchbar, Text, useTheme } from 'react-native-paper';
+import AdvancedSearchFilters from '../../../components/AdvancedSearchFilters';
 import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
 
 // Song interface based on required fields
@@ -13,6 +14,7 @@ interface Song {
     description?: string;
     song_writer?: string;
     style: { id: string; name: string };
+    categories: Array<{ id: string; name: string }>;
     lyrics?: string;
     music_notes?: string;
 }
@@ -61,6 +63,11 @@ const SongsList = React.memo(() => {
     const [loadingMore, setLoadingMore] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
+    const [selectedStyleId, setSelectedStyleId] = useState<string | undefined>();
+    const [debouncedCategoryId, setDebouncedCategoryId] = useState<string | undefined>();
+    const [debouncedStyleId, setDebouncedStyleId] = useState<string | undefined>();
+    const [filtersExpanded, setFiltersExpanded] = useState(false);
     const [pagination, setPagination] = useState({
         current_page: 1,
         last_page: 1,
@@ -76,10 +83,20 @@ const SongsList = React.memo(() => {
         return () => clearTimeout(timer);
     }, [searchQuery]);
 
-    // Load songs when debounced search query changes
+    // Debounce filter changes
     useEffect(() => {
-        loadSongs(1, false, debouncedSearchQuery);
-    }, [debouncedSearchQuery]);
+        const timer = setTimeout(() => {
+            setDebouncedCategoryId(selectedCategoryId);
+            setDebouncedStyleId(selectedStyleId);
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [selectedCategoryId, selectedStyleId]);
+
+    // Load songs when debounced search query or filters change
+    useEffect(() => {
+        loadSongs(1, false, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId);
+    }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
 
     useEffect(() => {
         // Defer initial load to improve screen transition performance
@@ -92,7 +109,13 @@ const SongsList = React.memo(() => {
         };
     }, []);
 
-    const loadSongs = async (page: number = 1, refresh: boolean = false, search?: string) => {
+    const loadSongs = async (
+        page: number = 1,
+        refresh: boolean = false,
+        search?: string,
+        categoryId?: string,
+        styleId?: string
+    ) => {
         if (page === 1 && !refresh) {
             setLoading(true);
         } else if (refresh) {
@@ -114,6 +137,23 @@ const SongsList = React.memo(() => {
                 }
             } else if (debouncedSearchQuery.trim()) {
                 params.search = debouncedSearchQuery.trim();
+            }
+
+            // Add filter parameters
+            if (categoryId !== undefined) {
+                if (categoryId) {
+                    params.category_id = categoryId;
+                }
+            } else if (debouncedCategoryId) {
+                params.category_id = debouncedCategoryId;
+            }
+
+            if (styleId !== undefined) {
+                if (styleId) {
+                    params.style_id = styleId;
+                }
+            } else if (debouncedStyleId) {
+                params.style_id = debouncedStyleId;
             }
 
             const response = await fetchSongs(params) as PaginatedResponse;
@@ -140,14 +180,14 @@ const SongsList = React.memo(() => {
     };
 
     const handleRefresh = useCallback(() => {
-        loadSongs(1, true, debouncedSearchQuery);
-    }, [debouncedSearchQuery]);
+        loadSongs(1, true, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId);
+    }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
 
     const handleLoadMore = useCallback(() => {
         if (pagination.current_page < pagination.last_page && !loadingMore) {
-            loadSongs(pagination.current_page + 1, false, debouncedSearchQuery);
+            loadSongs(pagination.current_page + 1, false, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId);
         }
-    }, [pagination, loadingMore, debouncedSearchQuery]);
+    }, [pagination, loadingMore, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
 
     const handleSearchChange = useCallback((query: string) => {
         setSearchQuery(query);
@@ -155,6 +195,21 @@ const SongsList = React.memo(() => {
 
     const handleClearSearch = useCallback(() => {
         setSearchQuery('');
+    }, []);
+
+    const handleFiltersChange = useCallback((filters: { categoryId?: string; styleId?: string }) => {
+        setSelectedCategoryId(filters.categoryId);
+        setSelectedStyleId(filters.styleId);
+    }, []);
+
+    const handleClearFilters = useCallback(() => {
+        setSelectedCategoryId(undefined);
+        setSelectedStyleId(undefined);
+        setFiltersExpanded(false);
+    }, []);
+
+    const handleToggleFiltersExpanded = useCallback(() => {
+        setFiltersExpanded(prev => !prev);
     }, []);
 
     const renderSongItem = useCallback(({ item }: { item: Song }) => (
@@ -189,6 +244,22 @@ const SongsList = React.memo(() => {
                         <Text variant="bodySmall" style={themedStyles.songWriter}>
                             By {item.song_writer}
                         </Text>
+                    )}
+
+                    {/* Categories */}
+                    {item.categories && item.categories.length > 0 && (
+                        <View style={themedStyles.categoriesContainer}>
+                            {item.categories.map((category) => (
+                                <Chip
+                                    key={category.id}
+                                    mode="outlined"
+                                    style={themedStyles.categoryChip}
+                                    textStyle={themedStyles.categoryChipText}
+                                >
+                                    {category.name}
+                                </Chip>
+                            ))}
+                        </View>
                     )}
 
                     <View style={themedStyles.songFooter}>
@@ -250,16 +321,27 @@ const SongsList = React.memo(() => {
     return (
         <View style={themedStyles.container}>
             <View style={themedStyles.searchContainer}>
-                <Searchbar
-                    placeholder="Search songs by title or lyrics..."
-                    onChangeText={handleSearchChange}
-                    value={searchQuery}
-                    style={themedStyles.searchBar}
-                    inputStyle={themedStyles.searchInput}
-                    iconColor={theme.colors.primary}
-                    clearIcon={searchQuery ? 'close' : undefined}
-                    onClearIconPress={handleClearSearch}
-                />
+                <View style={themedStyles.searchRow}>
+                    <Searchbar
+                        placeholder="Search songs by title or lyrics..."
+                        onChangeText={handleSearchChange}
+                        value={searchQuery}
+                        style={themedStyles.searchBar}
+                        inputStyle={themedStyles.searchInput}
+                        iconColor={theme.colors.primary}
+                        clearIcon={searchQuery ? 'close' : undefined}
+                        onClearIconPress={handleClearSearch}
+                    />
+                    <AdvancedSearchFilters
+                        onFiltersChange={handleFiltersChange}
+                        isExpanded={filtersExpanded}
+                        onToggleExpanded={handleToggleFiltersExpanded}
+                        selectedCategoryId={selectedCategoryId}
+                        selectedStyleId={selectedStyleId}
+                        onClearFilters={handleClearFilters}
+                        inline={true}
+                    />
+                </View>
             </View>
             {songs.length > 0 ? (
                 <FlatList {...flatListProps} />
@@ -303,7 +385,13 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         // borderBottomColor: '#e0e0e0',
     },
+    searchRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
     searchBar: {
+        flex: 1,
         elevation: 2,
         borderRadius: 8,
     },
@@ -392,5 +480,19 @@ const styles = StyleSheet.create({
     },
     chipText: {
         color: '#fff', // White text on colored background is appropriate
+    },
+    categoriesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginBottom: 8,
+    },
+    categoryChip: {
+        height: 24,
+        borderRadius: 12,
+        marginBottom: 4,
+    },
+    categoryChipText: {
+        fontSize: 12,
     },
 });

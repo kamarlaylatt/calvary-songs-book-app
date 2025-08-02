@@ -40,6 +40,7 @@ export interface PaginatedResponse {
 export interface FetchSongsParams {
     search?: string;
     style_id?: string;
+    category_id?: string;
     limit?: number;
     page?: number;
 }
@@ -51,6 +52,7 @@ export const fetchSongs = async (params?: FetchSongsParams): Promise<PaginatedRe
         const queryParams = new URLSearchParams();
         if (params?.search) queryParams.append('search', params.search);
         if (params?.style_id) queryParams.append('style_id', params.style_id);
+        if (params?.category_id) queryParams.append('category_id', params.category_id);
         if (params?.limit) queryParams.append('limit', params.limit.toString());
         if (params?.page) queryParams.append('page', params.page.toString());
 
@@ -156,6 +158,46 @@ export const fetchSongBySlug = async (slug: string): Promise<SongDetail> => {
         };
     } catch (error) {
         console.error('Error fetching song by slug:', error);
+        throw error;
+    }
+};
+
+export interface Category {
+    id: string;
+    name: string;
+    slug: string;
+}
+
+export interface Style {
+    id: string;
+    name: string;
+}
+
+export interface SearchFilters {
+    categories: Category[];
+    styles: Style[];
+}
+
+export const fetchSearchFilters = async (): Promise<SearchFilters> => {
+    try {
+        console.log(`Making API call to: ${API_BASE_URL}/search-filters`);
+        const response = await axios.get(`${API_BASE_URL}/search-filters`);
+
+        console.log('Search filters response:', response.data);
+
+        return {
+            categories: response.data.categories.map((category: any) => ({
+                id: category.id.toString(),
+                name: category.name,
+                slug: category.slug
+            })),
+            styles: response.data.styles.map((style: any) => ({
+                id: style.id.toString(),
+                name: style.name
+            }))
+        };
+    } catch (error) {
+        console.error('Error fetching search filters:', error);
         throw error;
     }
 };
