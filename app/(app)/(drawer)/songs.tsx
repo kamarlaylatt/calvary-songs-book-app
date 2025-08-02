@@ -251,7 +251,7 @@ const SongsList = React.memo(() => {
                         <View style={themedStyles.categoriesContainer}>
                             {item.categories.map((category) => (
                                 <Chip
-                                    key={category.id}
+                                    key={`${item.id}-${category.id}`}
                                     mode="outlined"
                                     style={themedStyles.categoryChip}
                                     textStyle={themedStyles.categoryChipText}
