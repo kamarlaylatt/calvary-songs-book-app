@@ -21,18 +21,6 @@ interface Song {
 
 const ITEMS_PER_PAGE = 15;
 
-// Move getStyleColor outside component to avoid recreation on every render
-const getStyleColor = (style: string, theme: any) => {
-    const colors: { [key: string]: string } = {
-        'Hymn': theme.colors.tertiary,
-        'Worship': theme.colors.primary,
-        'Gospel': theme.colors.secondary,
-        'Contemporary': theme.colors.error,
-        'Traditional': theme.colors.outline,
-    };
-    return colors[style] || theme.colors.onSurfaceVariant;
-};
-
 const SongsList = React.memo(() => {
     const router = useRouter();
     const theme = useTheme();
@@ -243,10 +231,11 @@ const SongsList = React.memo(() => {
                             <Chip
                                 mode="outlined"
                                 compact
-                                style={[themedStyles.styleChip, { backgroundColor: getStyleColor(item.style.name, theme) }]}
+                                style={[themedStyles.styleChip]}
                                 textStyle={themedStyles.chipText}
                             >
-                                {item.style.name}
+                                <Text>{item.style.name}</Text>
+
                             </Chip>
                         )}
                     </View>

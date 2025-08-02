@@ -243,15 +243,17 @@ function SongDetailScreen() {
                         </Text>
                     )}
 
+
+
                     <View style={themedStyles.metaSection}>
                         {song.style?.name && (
                             <Chip
                                 mode="flat"
-                                style={[themedStyles.styleChip, { backgroundColor: getStyleColor(song.style.name, theme) }]}
+                                style={[themedStyles.styleChip]}
                                 textStyle={themedStyles.styleChipText}
                                 icon="music"
                             >
-                                {song.style.name}
+                                <Text>{song.style.name}</Text>
                             </Chip>
                         )}
                     </View>
@@ -363,17 +365,6 @@ function SongDetailScreen() {
         </ScrollView>
     );
 }
-
-const getStyleColor = (style: string, theme: any) => {
-    const colors: { [key: string]: string } = {
-        'Hymn': theme.colors.tertiary,
-        'Worship': theme.colors.primary,
-        'Gospel': theme.colors.secondary,
-        'Contemporary': theme.colors.error,
-        'Traditional': theme.colors.outline,
-    };
-    return colors[style] || theme.colors.onSurfaceVariant;
-};
 
 const styles = StyleSheet.create({
     container: {
