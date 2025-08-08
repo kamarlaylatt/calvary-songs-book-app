@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Button, Card, Chip, Divider, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import RenderHtml from 'react-native-render-html';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -15,7 +15,7 @@ function SongDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [playing, setPlaying] = useState(false);
+
     const [showPlayer, setShowPlayer] = useState(false);
 
     // Create theme-aware styles
@@ -95,29 +95,11 @@ function SongDetailScreen() {
 
     const togglePlayer = () => {
         setShowPlayer(!showPlayer);
-        if (playing) {
-            setPlaying(false);
-        }
     };
 
-    const onStateChange = (state: string) => {
-        if (state === 'ended') {
-            setPlaying(false);
-        }
-    };
 
-    const handleYouTubePress = async (url: string) => {
-        try {
-            const supported = await Linking.canOpenURL(url);
-            if (supported) {
-                await Linking.openURL(url);
-            } else {
-                Alert.alert('Error', 'Unable to open YouTube link');
-            }
-        } catch (error) {
-            Alert.alert('Error', 'Unable to open YouTube link');
-        }
-    };
+
+
 
     const onRefresh = () => {
         loadSong(true);
@@ -314,7 +296,7 @@ function SongDetailScreen() {
                     <Card.Content>
                         <View style={themedStyles.sectionHeader}>
                             <Text variant="titleLarge" style={themedStyles.sectionTitle}>
-                                {showPlayer ? 'Audio Player' : 'Listen on YouTube'}
+                                {showPlayer ? 'Player' : 'Listen Song'}
                             </Text>
                             <View style={themedStyles.youtubeControls}>
                                 <IconButton
@@ -323,12 +305,7 @@ function SongDetailScreen() {
                                     size={24}
                                     onPress={togglePlayer}
                                 />
-                                <IconButton
-                                    icon="open-in-new"
-                                    iconColor={theme.colors.onSurfaceVariant}
-                                    size={20}
-                                    onPress={() => handleYouTubePress(song.youtube!)}
-                                />
+
                             </View>
                         </View>
 
@@ -336,9 +313,7 @@ function SongDetailScreen() {
                             <View style={themedStyles.playerContainer}>
                                 <YoutubePlayer
                                     height={200}
-                                    play={playing}
                                     videoId={getYouTubeVideoId(song.youtube)!}
-                                    onChangeState={onStateChange}
                                     webViewStyle={themedStyles.youtubePlayer}
                                     initialPlayerParams={{
                                         cc_lang_pref: 'en',
@@ -348,41 +323,10 @@ function SongDetailScreen() {
                                         iv_load_policy: 3,
                                     }}
                                 />
-                                <View style={themedStyles.audioControls}>
-                                    <Button
-                                        mode={playing ? 'contained' : 'contained-tonal'}
-                                        onPress={() => setPlaying(!playing)}
-                                        icon={playing ? 'pause' : 'play'}
-                                        style={themedStyles.playButton}
-                                    >
-                                        {playing ? 'Pause' : 'Play Audio'}
-                                    </Button>
-                                </View>
                             </View>
                         )}
 
-                        {!showPlayer && (
-                            <View style={themedStyles.buttonContainer}>
-                                <Button
-                                    mode="contained-tonal"
-                                    onPress={togglePlayer}
-                                    icon="headphones"
-                                    style={themedStyles.youtubeButton}
-                                    contentStyle={themedStyles.youtubeButtonContent}
-                                >
-                                    Play Audio Only
-                                </Button>
-                                <Button
-                                    mode="outlined"
-                                    onPress={() => handleYouTubePress(song.youtube!)}
-                                    icon="youtube"
-                                    style={themedStyles.youtubeButton}
-                                    contentStyle={themedStyles.youtubeButtonContent}
-                                >
-                                    Open in YouTube
-                                </Button>
-                            </View>
-                        )}
+
                     </Card.Content>
                 </Card>
             )}
@@ -528,12 +472,7 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: 18,
     },
-    youtubeButton: {
-        marginTop: 8,
-    },
-    youtubeButtonContent: {
-        paddingVertical: 8,
-    },
+
     youtubeControls: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -546,17 +485,8 @@ const styles = StyleSheet.create({
     youtubePlayer: {
         borderRadius: 12,
     },
-    audioControls: {
-        marginTop: 12,
-        alignItems: 'center',
-    },
-    playButton: {
-        minWidth: 120,
-    },
-    buttonContainer: {
-        gap: 8,
-        marginTop: 8,
-    },
+
+
     lyricsContainer: {
         padding: 20,
         borderRadius: 12,
