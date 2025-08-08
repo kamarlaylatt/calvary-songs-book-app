@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Button, Card, Chip, Divider, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import RenderHtml from 'react-native-render-html';
+import YoutubePlayer from 'react-native-youtube-iframe';
 import { SongDetail, fetchSongBySlug } from '../../../services/api';
 
 function SongDetailScreen() {
@@ -14,6 +15,8 @@ function SongDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [playing, setPlaying] = useState(false);
+    const [showPlayer, setShowPlayer] = useState(false);
 
     // Create theme-aware styles
     const themedStyles = StyleSheet.create({
@@ -80,6 +83,26 @@ function SongDetailScreen() {
             } else {
                 setLoading(false);
             }
+        }
+    };
+
+    // Extract YouTube video ID from URL
+    const getYouTubeVideoId = (url: string): string | null => {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const togglePlayer = () => {
+        setShowPlayer(!showPlayer);
+        if (playing) {
+            setPlaying(false);
+        }
+    };
+
+    const onStateChange = (state: string) => {
+        if (state === 'ended') {
+            setPlaying(false);
         }
     };
 
@@ -291,24 +314,75 @@ function SongDetailScreen() {
                     <Card.Content>
                         <View style={themedStyles.sectionHeader}>
                             <Text variant="titleLarge" style={themedStyles.sectionTitle}>
-                                Watch on YouTube
+                                {showPlayer ? 'Audio Player' : 'Listen on YouTube'}
                             </Text>
-                            <IconButton
-                                icon="play-circle"
-                                iconColor={theme.colors.primary}
-                                size={24}
-                                onPress={() => handleYouTubePress(song.youtube!)}
-                            />
+                            <View style={themedStyles.youtubeControls}>
+                                <IconButton
+                                    icon={showPlayer ? 'close' : 'play-circle'}
+                                    iconColor={theme.colors.primary}
+                                    size={24}
+                                    onPress={togglePlayer}
+                                />
+                                <IconButton
+                                    icon="open-in-new"
+                                    iconColor={theme.colors.onSurfaceVariant}
+                                    size={20}
+                                    onPress={() => handleYouTubePress(song.youtube!)}
+                                />
+                            </View>
                         </View>
-                        <Button
-                            mode="contained-tonal"
-                            onPress={() => handleYouTubePress(song.youtube!)}
-                            icon="youtube"
-                            style={themedStyles.youtubeButton}
-                            contentStyle={themedStyles.youtubeButtonContent}
-                        >
-                            Open in YouTube
-                        </Button>
+
+                        {showPlayer && getYouTubeVideoId(song.youtube) && (
+                            <View style={themedStyles.playerContainer}>
+                                <YoutubePlayer
+                                    height={200}
+                                    play={playing}
+                                    videoId={getYouTubeVideoId(song.youtube)!}
+                                    onChangeState={onStateChange}
+                                    webViewStyle={themedStyles.youtubePlayer}
+                                    initialPlayerParams={{
+                                        cc_lang_pref: 'en',
+                                        showClosedCaptions: false,
+                                        modestbranding: true,
+                                        rel: false,
+                                        iv_load_policy: 3,
+                                    }}
+                                />
+                                <View style={themedStyles.audioControls}>
+                                    <Button
+                                        mode={playing ? 'contained' : 'contained-tonal'}
+                                        onPress={() => setPlaying(!playing)}
+                                        icon={playing ? 'pause' : 'play'}
+                                        style={themedStyles.playButton}
+                                    >
+                                        {playing ? 'Pause' : 'Play Audio'}
+                                    </Button>
+                                </View>
+                            </View>
+                        )}
+
+                        {!showPlayer && (
+                            <View style={themedStyles.buttonContainer}>
+                                <Button
+                                    mode="contained-tonal"
+                                    onPress={togglePlayer}
+                                    icon="headphones"
+                                    style={themedStyles.youtubeButton}
+                                    contentStyle={themedStyles.youtubeButtonContent}
+                                >
+                                    Play Audio Only
+                                </Button>
+                                <Button
+                                    mode="outlined"
+                                    onPress={() => handleYouTubePress(song.youtube!)}
+                                    icon="youtube"
+                                    style={themedStyles.youtubeButton}
+                                    contentStyle={themedStyles.youtubeButtonContent}
+                                >
+                                    Open in YouTube
+                                </Button>
+                            </View>
+                        )}
                     </Card.Content>
                 </Card>
             )}
@@ -459,6 +533,29 @@ const styles = StyleSheet.create({
     },
     youtubeButtonContent: {
         paddingVertical: 8,
+    },
+    youtubeControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    playerContainer: {
+        marginTop: 12,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    youtubePlayer: {
+        borderRadius: 12,
+    },
+    audioControls: {
+        marginTop: 12,
+        alignItems: 'center',
+    },
+    playButton: {
+        minWidth: 120,
+    },
+    buttonContainer: {
+        gap: 8,
+        marginTop: 8,
     },
     lyricsContainer: {
         padding: 20,
