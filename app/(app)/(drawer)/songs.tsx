@@ -4,6 +4,7 @@ import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 
 import { Card, Chip, Searchbar, Text, useTheme } from 'react-native-paper';
 import AdvancedSearchFilters from '../../../components/AdvancedSearchFilters';
 import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
+import { getSongHistory, initializeDatabase, removeSongFromHistory, SongHistoryItem } from '../../../services/songHistory';
 
 // Song interface based on required fields
 interface Song {
@@ -52,8 +53,27 @@ const SongsList = React.memo(() => {
             ...styles.emptySubtext,
             color: theme.colors.onSurfaceVariant,
         },
+        titleRow: {
+            ...styles.titleRow,
+        },
+        recentBadge: {
+            ...styles.recentBadge,
+            color: theme.colors.primary,
+        },
+        headerActions: {
+            ...styles.headerActions,
+        },
+        deleteButton: {
+            ...styles.deleteButton,
+            backgroundColor: theme.colors.errorContainer,
+        },
+        deleteButtonText: {
+            ...styles.deleteButtonText,
+            color: theme.colors.onErrorContainer,
+        },
     });
     const [songs, setSongs] = useState<Song[]>([]);
+    const [historySongs, setHistorySongs] = useState<Song[]>([]);
     const [loading, setLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -95,14 +115,25 @@ const SongsList = React.memo(() => {
     }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
 
     useEffect(() => {
-        // Defer initial load to improve screen transition performance
-        const timer = setTimeout(() => {
-            loadSongs();
-        }, 50);
-
-        return () => {
-            clearTimeout(timer);
+        // Initialize database and load data
+        const initializeAndLoad = async () => {
+            try {
+                await initializeDatabase();
+                await loadHistory();
+                // Defer initial load to improve screen transition performance
+                setTimeout(() => {
+                    loadSongs();
+                }, 50);
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+                // Still load songs even if history fails
+                setTimeout(() => {
+                    loadSongs();
+                }, 50);
+            }
         };
+
+        initializeAndLoad();
     }, []);
 
     const loadSongs = async (
@@ -175,7 +206,33 @@ const SongsList = React.memo(() => {
         }
     };
 
-    const handleRefresh = useCallback(() => {
+    const loadHistory = async () => {
+        try {
+            const historyItems = await getSongHistory(5); // Get last 5 viewed songs
+
+            // Convert history items to Song format
+            const historySongsData: Song[] = historyItems.map((item: SongHistoryItem) => ({
+                id: item.id,
+                slug: item.slug,
+                title: item.title,
+                song_writer: item.song_writer,
+                description: item.description,
+                style: { id: '', name: item.style_name || '' },
+                categories: item.categories ? JSON.parse(item.categories) : [],
+                lyrics: undefined, // Not stored in history
+                music_notes: undefined, // Not stored in history
+                youtube: undefined // Not stored in history
+            }));
+
+            setHistorySongs(historySongsData);
+        } catch (error) {
+            console.error('Error loading song history:', error);
+            setHistorySongs([]);
+        }
+    };
+
+    const handleRefresh = useCallback(async () => {
+        await loadHistory(); // Refresh history as well
         loadSongs(1, true, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId);
     }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
 
@@ -208,114 +265,144 @@ const SongsList = React.memo(() => {
         setFiltersExpanded(prev => !prev);
     }, []);
 
-    const renderSongItem = useCallback(({ item }: { item: Song }) => (
-        <TouchableOpacity
-            style={themedStyles.songItem}
-            onPress={() => router.push(`/song/${item.slug}`)}
-        >
-            <Card style={themedStyles.card}>
-                <Card.Content style={themedStyles.cardContent}>
-                    {/* Header with title and style */}
-                    <View style={themedStyles.songHeader}>
-                        <View style={themedStyles.titleContainer}>
-                            <Text variant="titleMedium" style={themedStyles.songTitle} numberOfLines={2}>
-                                {item.title}
+    const handleDeleteFromHistory = useCallback(async (slug: string, event: any) => {
+        event.stopPropagation(); // Prevent navigation when delete is pressed
+        try {
+            await removeSongFromHistory(slug);
+            await loadHistory(); // Refresh history list
+        } catch (error) {
+            console.error('Error deleting song from history:', error);
+        }
+    }, []);
+
+    const renderSongItem = useCallback(({ item, index }: { item: Song; index: number }) => {
+        const isFromHistory = index < historySongs.length && !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId;
+
+        return (
+            <TouchableOpacity
+                style={themedStyles.songItem}
+                onPress={() => router.push(`/song/${item.slug}`)}
+            >
+                <Card style={themedStyles.card}>
+                    <Card.Content style={themedStyles.cardContent}>
+                        {/* Header with title, style, and delete button for history items */}
+                        <View style={themedStyles.songHeader}>
+                            <View style={themedStyles.titleContainer}>
+                                <View style={themedStyles.titleRow}>
+                                    <Text variant="titleMedium" style={themedStyles.songTitle} numberOfLines={2}>
+                                        {item.title}
+                                    </Text>
+                                    {isFromHistory && (
+                                        <Text style={themedStyles.recentBadge}>
+                                            Recent
+                                        </Text>
+                                    )}
+                                </View>
+                                {item.song_writer && (
+                                    <Text variant="bodySmall" style={themedStyles.songWriter}>
+                                        {item.song_writer}
+                                    </Text>
+                                )}
+                            </View>
+                            <View style={themedStyles.headerActions}>
+                                {item.style?.name && (
+                                    <Chip
+                                        mode="outlined"
+                                        compact
+                                        style={[themedStyles.styleChip]}
+                                        textStyle={themedStyles.chipText}
+                                    >
+                                        <Text>{item.style.name}</Text>
+                                    </Chip>
+                                )}
+                                {isFromHistory && (
+                                    <TouchableOpacity
+                                        style={themedStyles.deleteButton}
+                                        onPress={(event) => handleDeleteFromHistory(item.slug, event)}
+                                    >
+                                        <Text style={themedStyles.deleteButtonText}>×</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </View>
+
+                        {/* Description */}
+                        {item.description && (
+                            <Text variant="bodySmall" style={themedStyles.description} numberOfLines={2}>
+                                {item.description}
                             </Text>
-                            {item.song_writer && (
-                                <Text variant="bodySmall" style={themedStyles.songWriter}>
-                                    {item.song_writer}
-                                </Text>
-                            )}
-                        </View>
-                        {item.style?.name && (
-                            <Chip
-                                mode="outlined"
-                                compact
-                                style={[themedStyles.styleChip]}
-                                textStyle={themedStyles.chipText}
-                            >
-                                <Text>{item.style.name}</Text>
-
-                            </Chip>
                         )}
-                    </View>
 
-                    {/* Description */}
-                    {item.description && (
-                        <Text variant="bodySmall" style={themedStyles.description} numberOfLines={2}>
-                            {item.description}
-                        </Text>
-                    )}
+                        {/* Categories - Show max 3, then +N more */}
+                        {item.categories && item.categories.length > 0 && (
+                            <View style={themedStyles.categoriesContainer}>
+                                {item.categories.slice(0, 3).map((category) => (
+                                    <Chip
+                                        key={`${item.id}-${category.id}`}
+                                        mode="outlined"
+                                        compact
+                                        style={themedStyles.categoryChip}
+                                        textStyle={themedStyles.categoryChipText}
+                                    >
+                                        {category.name}
+                                    </Chip>
+                                ))}
+                                {item.categories.length > 3 && (
+                                    <Chip
+                                        mode="outlined"
+                                        compact
+                                        style={themedStyles.categoryChip}
+                                        textStyle={themedStyles.categoryChipText}
+                                    >
+                                        +{item.categories.length - 3} more
+                                    </Chip>
+                                )}
+                            </View>
+                        )}
 
-                    {/* Categories - Show max 3, then +N more */}
-                    {item.categories && item.categories.length > 0 && (
-                        <View style={themedStyles.categoriesContainer}>
-                            {item.categories.slice(0, 3).map((category) => (
-                                <Chip
-                                    key={`${item.id}-${category.id}`}
-                                    mode="outlined"
-                                    compact
-                                    style={themedStyles.categoryChip}
-                                    textStyle={themedStyles.categoryChipText}
-                                >
-                                    {category.name}
-                                </Chip>
-                            ))}
-                            {item.categories.length > 3 && (
-                                <Chip
-                                    mode="outlined"
-                                    compact
-                                    style={themedStyles.categoryChip}
-                                    textStyle={themedStyles.categoryChipText}
-                                >
-                                    +{item.categories.length - 3} more
-                                </Chip>
-                            )}
+                        {/* Footer with content indicators */}
+                        <View style={themedStyles.songFooter}>
+                            <View style={themedStyles.contentIndicators}>
+                                {item.lyrics && (
+                                    <Chip
+                                        mode="outlined"
+                                        compact
+                                        icon="text"
+                                        style={themedStyles.contentChip}
+                                        textStyle={themedStyles.contentChipText}
+                                    >
+                                        Lyrics
+                                    </Chip>
+                                )}
+                                {item.music_notes && (
+                                    <Chip
+                                        mode="outlined"
+                                        compact
+                                        icon="music-note"
+                                        style={themedStyles.contentChip}
+                                        textStyle={themedStyles.contentChipText}
+                                    >
+                                        Notes
+                                    </Chip>
+                                )}
+                                {item.youtube && (
+                                    <Chip
+                                        mode="outlined"
+                                        compact
+                                        icon="youtube"
+                                        style={themedStyles.contentChip}
+                                        textStyle={themedStyles.contentChipText}
+                                    >
+                                        Video
+                                    </Chip>
+                                )}
+                            </View>
                         </View>
-                    )}
-
-                    {/* Footer with content indicators */}
-                    <View style={themedStyles.songFooter}>
-                        <View style={themedStyles.contentIndicators}>
-                            {item.lyrics && (
-                                <Chip
-                                    mode="outlined"
-                                    compact
-                                    icon="text"
-                                    style={themedStyles.contentChip}
-                                    textStyle={themedStyles.contentChipText}
-                                >
-                                    Lyrics
-                                </Chip>
-                            )}
-                            {item.music_notes && (
-                                <Chip
-                                    mode="outlined"
-                                    compact
-                                    icon="music-note"
-                                    style={themedStyles.contentChip}
-                                    textStyle={themedStyles.contentChipText}
-                                >
-                                    Notes
-                                </Chip>
-                            )}
-                            {item.youtube && (
-                                <Chip
-                                    mode="outlined"
-                                    compact
-                                    icon="youtube"
-                                    style={themedStyles.contentChip}
-                                    textStyle={themedStyles.contentChipText}
-                                >
-                                    Video
-                                </Chip>
-                            )}
-                        </View>
-                    </View>
-                </Card.Content>
-            </Card>
-        </TouchableOpacity>
-    ), [router, themedStyles, theme]);
+                    </Card.Content>
+                </Card>
+            </TouchableOpacity>
+        );
+    }, [router, themedStyles, theme, historySongs.length, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, handleDeleteFromHistory]);
 
     const renderFooter = useCallback(() => {
         if (!loadingMore) return null;
@@ -329,9 +416,24 @@ const SongsList = React.memo(() => {
     // Memoize the key extractor function
     const keyExtractor = useCallback((item: Song) => item.id, []);
 
+    // Combine history and regular songs, removing duplicates
+    const combinedSongs = useMemo(() => {
+        if (debouncedSearchQuery || debouncedCategoryId || debouncedStyleId) {
+            // If filtering, show only regular songs
+            return songs;
+        }
+
+        // Create a Set of slugs from history to avoid duplicates
+        const historyIds = new Set(historySongs.map(song => song.id));
+        const filteredSongs = songs.filter(song => !historyIds.has(song.id));
+
+        // Return history first, then regular songs
+        return [...historySongs, ...filteredSongs];
+    }, [songs, historySongs, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
+
     // Memoize FlatList props for better performance
     const flatListProps = useMemo(() => ({
-        data: songs,
+        data: combinedSongs,
         renderItem: renderSongItem,
         keyExtractor,
         contentContainerStyle: themedStyles.listContainer,
@@ -346,7 +448,7 @@ const SongsList = React.memo(() => {
         updateCellsBatchingPeriod: 50,
         initialNumToRender: 10,
         windowSize: 10,
-    }), [songs, renderSongItem, keyExtractor, handleRefresh, refreshing, handleLoadMore, renderFooter, themedStyles]);
+    }), [combinedSongs, renderSongItem, keyExtractor, handleRefresh, refreshing, handleLoadMore, renderFooter, themedStyles]);
 
     return (
         <View style={themedStyles.container}>
@@ -373,7 +475,7 @@ const SongsList = React.memo(() => {
                     />
                 </View>
             </View>
-            {songs.length > 0 ? (
+            {combinedSongs.length > 0 ? (
                 <FlatList {...flatListProps} />
             ) : (
                 <View style={themedStyles.emptyState}>
@@ -562,5 +664,36 @@ const styles = StyleSheet.create({
     contentChipText: {
         fontSize: 10,
         fontWeight: '500',
+    },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 2,
+    },
+    recentBadge: {
+        fontSize: 10,
+        fontWeight: '600',
+        marginLeft: 8,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    deleteButton: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 4,
+    },
+    deleteButtonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        lineHeight: 16,
     },
 });

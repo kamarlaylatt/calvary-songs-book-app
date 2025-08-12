@@ -5,6 +5,7 @@ import { Button, Card, Chip, Divider, IconButton, Surface, Text, useTheme } from
 import RenderHtml from 'react-native-render-html';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { SongDetail, fetchSongBySlug } from '../../../services/api';
+import { addSongToHistory, initializeDatabase } from '../../../services/songHistory';
 
 function SongDetailScreen() {
     const params = useLocalSearchParams<{ slug: string }>();
@@ -75,6 +76,24 @@ function SongDetailScreen() {
             setError(null);
             const songData = await fetchSongBySlug(slug);
             setSong(songData);
+
+            // Add song to history when successfully loaded (only on initial load, not refresh)
+            if (!isRefresh && songData) {
+                try {
+                    await addSongToHistory({
+                        id: songData.id,
+                        slug: songData.slug,
+                        title: songData.title,
+                        song_writer: songData.song_writer,
+                        style: songData.style,
+                        description: songData.description,
+                        categories: songData.categories
+                    });
+                } catch (historyError) {
+                    console.error('Failed to add song to history:', historyError);
+                    // Don't throw error here as it shouldn't prevent song display
+                }
+            }
         } catch (error: any) {
             console.error('Failed to load song:', error);
             setError(error.message || 'Failed to load song details');
@@ -128,7 +147,20 @@ function SongDetailScreen() {
             setLoading(false);
             return;
         }
-        loadSong();
+
+        // Initialize database on component mount
+        const initAndLoadSong = async () => {
+            try {
+                await initializeDatabase();
+                await loadSong();
+            } catch (error) {
+                console.error('Failed to initialize database:', error);
+                // Still load the song even if database initialization fails
+                await loadSong();
+            }
+        };
+
+        initAndLoadSong();
     }, [slug]);
 
     if (loading) {
