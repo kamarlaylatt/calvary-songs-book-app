@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Linking, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Button, Card, Chip, Divider, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import RenderHtml from 'react-native-render-html';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -17,6 +17,7 @@ function SongDetailScreen() {
     const [error, setError] = useState<string | null>(null);
 
     const [showPlayer, setShowPlayer] = useState(false);
+    const [playerError, setPlayerError] = useState<string | null>(null);
 
     // Create theme-aware styles
     const themedStyles = StyleSheet.create({
@@ -95,6 +96,23 @@ function SongDetailScreen() {
 
     const togglePlayer = () => {
         setShowPlayer(!showPlayer);
+        setPlayerError(null);
+    };
+
+    const openInYouTube = async () => {
+        try {
+            const url = song?.youtube;
+            if (!url) return;
+            const videoId = getYouTubeVideoId(url);
+            const appUrl = videoId ? `vnd.youtube://${videoId}` : url;
+            const webUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : url;
+            const canOpenApp = await Linking.canOpenURL(appUrl);
+            await Linking.openURL(canOpenApp ? appUrl : webUrl);
+        } catch (e) {
+            if (song?.youtube) {
+                await Linking.openURL(song.youtube);
+            }
+        }
     };
 
 
@@ -305,6 +323,14 @@ function SongDetailScreen() {
                                     size={24}
                                     onPress={togglePlayer}
                                 />
+                                {song.youtube && (
+                                    <IconButton
+                                        icon="open-in-new"
+                                        iconColor={theme.colors.primary}
+                                        size={24}
+                                        onPress={openInYouTube}
+                                    />
+                                )}
 
                             </View>
                         </View>
@@ -322,7 +348,17 @@ function SongDetailScreen() {
                                         rel: false,
                                         iv_load_policy: 3,
                                     }}
+                                    onError={() => setPlayerError('Playback may require sign-in. Open in YouTube instead.')}
+                                    onReady={() => setPlayerError(null)}
                                 />
+                                {playerError && (
+                                    <View style={{ marginTop: 8, gap: 8 }}>
+                                        <Text style={themedStyles.errorText}>{playerError}</Text>
+                                        <Button mode="outlined" onPress={openInYouTube}>
+                                            Open in YouTube
+                                        </Button>
+                                    </View>
+                                )}
                             </View>
                         )}
 
