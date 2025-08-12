@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View, Image } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 import { Card, Text, useTheme } from 'react-native-paper';
 
 export default function AboutScreen() {
@@ -30,8 +30,10 @@ export default function AboutScreen() {
             <View style={themedStyles.container}>
                 <Card style={themedStyles.card}>
                     <Card.Content>
+                        <Image source={require('../../../assets/images/calvary-logo.png')} style={themedStyles.logo} />
+
                         <Text variant="headlineMedium" style={themedStyles.title}>
-                            About Calvary Songs Book
+                            About Calvary App
                         </Text>
 
                         <Text variant="bodyMedium" style={themedStyles.description}>
@@ -86,5 +88,11 @@ const styles = StyleSheet.create({
     },
     featureItem: {
         marginBottom: 8,
+    },
+    logo: {
+        width: 100,
+        height: 100,
+        alignSelf: 'center',
+        marginBottom: 16,
     },
 });
