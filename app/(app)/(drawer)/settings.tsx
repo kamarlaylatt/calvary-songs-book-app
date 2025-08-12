@@ -60,22 +60,6 @@ export default function SettingsScreen() {
 
             <View style={themedStyles.section}>
                 <List.Item
-                    title="About"
-                    description="App version and information"
-                    left={(props) => <List.Icon {...props} icon="information" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    style={themedStyles.listItem}
-                    titleStyle={{ color: theme.colors.onSurface }}
-                    descriptionStyle={themedStyles.description}
-                    onPress={() => {
-                        // Navigate to about page or show info
-                        console.log('Navigate to about');
-                    }}
-                />
-            </View>
-
-            <View style={themedStyles.section}>
-                <List.Item
                     title="App Version"
                     description="1.0.0"
                     left={(props) => <List.Icon {...props} icon="information-outline" />}

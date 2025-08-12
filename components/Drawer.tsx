@@ -29,12 +29,12 @@ export default function DrawerComponent() {
             <Text variant="headlineMedium" style={themedStyles.title}>
                 Calvary Songs
             </Text>
-            <Drawer.Item
+            {/* <Drawer.Item
                 style={themedStyles.drawerItem}
                 icon="home"
                 label="Home"
                 onPress={() => router.push('/(app)/(drawer)')}
-            />
+            /> */}
             <Drawer.Item
                 style={themedStyles.drawerItem}
                 icon="music"
