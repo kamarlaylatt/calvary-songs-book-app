@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Card, Chip, Searchbar, Text, useTheme } from 'react-native-paper';
+import { Card, Chip, Divider, Searchbar, Text, useTheme } from 'react-native-paper';
 import AdvancedSearchFilters from '../../../components/AdvancedSearchFilters';
 import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
-import { getSongHistory, initializeDatabase, removeSongFromHistory, SongHistoryItem } from '../../../services/songHistory';
+import { clearSongHistory, getSongHistory, initializeDatabase, removeSongFromHistory, SongHistoryItem } from '../../../services/songHistory';
 
 // Song interface based on required fields
 interface Song {
@@ -18,6 +18,8 @@ interface Song {
     categories: Array<{ id: string; name: string }>;
     lyrics?: string;
     music_notes?: string;
+    visited_at?: string;
+    visit_count?: number;
 }
 
 const ITEMS_PER_PAGE = 15;
@@ -71,6 +73,30 @@ const SongsList = React.memo(() => {
             ...styles.deleteButtonText,
             color: theme.colors.onErrorContainer,
         },
+        listHeaderTitle: {
+            ...styles.listHeaderTitle,
+            color: theme.colors.onSurfaceVariant,
+        },
+        clearHistoryButton: {
+            ...styles.clearHistoryButton,
+            backgroundColor: theme.colors.surfaceVariant,
+        },
+        clearHistoryButtonText: {
+            ...styles.clearHistoryButtonText,
+            color: theme.colors.primary,
+        },
+        recentMetaChip: {
+            ...styles.recentMetaChip,
+            backgroundColor: theme.colors.surfaceVariant,
+        },
+        recentMetaChipText: {
+            ...styles.recentMetaChipText,
+            color: theme.colors.onSurfaceVariant,
+        },
+        sectionDivider: {
+            ...styles.sectionDivider,
+            borderBottomColor: theme.colors.surfaceVariant,
+        },
     });
     const [songs, setSongs] = useState<Song[]>([]);
     const [historySongs, setHistorySongs] = useState<Song[]>([]);
@@ -89,6 +115,25 @@ const SongsList = React.memo(() => {
         last_page: 1,
         total: 0
     });
+
+    const showHistoryHeader = useMemo(() => {
+        return !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId && historySongs.length > 0;
+    }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, historySongs.length]);
+
+    const formatRelativeTime = useCallback((isoDate?: string) => {
+        if (!isoDate) return '';
+        const now = Date.now();
+        const then = new Date(isoDate).getTime();
+        const seconds = Math.max(1, Math.floor((now - then) / 1000));
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+        if (seconds < 45) return 'just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        if (days === 1) return 'yesterday';
+        return `${days}d ago`;
+    }, []);
 
     // Debounce search query
     useEffect(() => {
@@ -221,7 +266,9 @@ const SongsList = React.memo(() => {
                 categories: item.categories ? JSON.parse(item.categories) : [],
                 lyrics: undefined, // Not stored in history
                 music_notes: undefined, // Not stored in history
-                youtube: undefined // Not stored in history
+                youtube: undefined, // Not stored in history
+                visited_at: item.visited_at,
+                visit_count: item.visit_count,
             }));
 
             setHistorySongs(historySongsData);
@@ -275,6 +322,15 @@ const SongsList = React.memo(() => {
         }
     }, []);
 
+    const handleClearHistory = useCallback(async () => {
+        try {
+            await clearSongHistory();
+            await loadHistory();
+        } catch (error) {
+            console.error('Error clearing song history:', error);
+        }
+    }, []);
+
     const renderSongItem = useCallback(({ item, index }: { item: Song; index: number }) => {
         const isFromHistory = index < historySongs.length && !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId;
 
@@ -283,7 +339,8 @@ const SongsList = React.memo(() => {
                 style={themedStyles.songItem}
                 onPress={() => router.push(`/song/${item.slug}`)}
             >
-                <Card style={themedStyles.card}>
+                <Card style={[themedStyles.card, (isFromHistory ? styles.historyCard : null)]}
+                    accessibilityLabel={isFromHistory ? 'Recently viewed song' : 'Song'}>
                     <Card.Content style={themedStyles.cardContent}>
                         {/* Header with title, style, and delete button for history items */}
                         <View style={themedStyles.songHeader}>
@@ -292,11 +349,7 @@ const SongsList = React.memo(() => {
                                     <Text variant="titleMedium" style={themedStyles.songTitle} numberOfLines={2}>
                                         {item.title}
                                     </Text>
-                                    {isFromHistory && (
-                                        <Text style={themedStyles.recentBadge}>
-                                            Recent
-                                        </Text>
-                                    )}
+                                    {/* Recent label replaced by meta chips below */}
                                 </View>
                                 {item.song_writer && (
                                     <Text variant="bodySmall" style={themedStyles.songWriter}>
@@ -325,6 +378,18 @@ const SongsList = React.memo(() => {
                                 )}
                             </View>
                         </View>
+                        {isFromHistory && (
+                            <View style={themedStyles.recentMetaRow}>
+                                <Chip mode="outlined" compact style={themedStyles.recentMetaChip} textStyle={themedStyles.recentMetaChipText}>
+                                    Viewed {formatRelativeTime(item.visited_at)}
+                                </Chip>
+                                {!!item.visit_count && item.visit_count > 1 && (
+                                    <Chip mode="outlined" compact style={themedStyles.recentMetaChip} textStyle={themedStyles.recentMetaChipText}>
+                                        {item.visit_count}×
+                                    </Chip>
+                                )}
+                            </View>
+                        )}
 
                         {/* Description */}
                         {item.description && (
@@ -398,6 +463,12 @@ const SongsList = React.memo(() => {
                                 )}
                             </View>
                         </View>
+
+                        {isFromHistory && index === historySongs.length - 1 && (
+                            <View style={themedStyles.sectionDivider}>
+                                <Divider />
+                            </View>
+                        )}
                     </Card.Content>
                 </Card>
             </TouchableOpacity>
@@ -431,6 +502,17 @@ const SongsList = React.memo(() => {
         return [...historySongs, ...filteredSongs];
     }, [songs, historySongs, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
 
+    const renderHistoryHeader = useCallback(() => (
+        <View style={themedStyles.listHeader}>
+            <View style={themedStyles.listHeaderRow}>
+                <Text style={themedStyles.listHeaderTitle}>Recently viewed</Text>
+                <TouchableOpacity onPress={handleClearHistory} style={themedStyles.clearHistoryButton}>
+                    <Text style={themedStyles.clearHistoryButtonText}>Clear</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    ), [themedStyles, handleClearHistory]);
+
     // Memoize FlatList props for better performance
     const flatListProps = useMemo(() => ({
         data: combinedSongs,
@@ -443,12 +525,13 @@ const SongsList = React.memo(() => {
         onEndReached: handleLoadMore,
         onEndReachedThreshold: 0.5,
         ListFooterComponent: renderFooter,
+        ListHeaderComponent: showHistoryHeader ? renderHistoryHeader : undefined,
         removeClippedSubviews: true,
         maxToRenderPerBatch: 10,
         updateCellsBatchingPeriod: 50,
         initialNumToRender: 10,
         windowSize: 10,
-    }), [combinedSongs, renderSongItem, keyExtractor, handleRefresh, refreshing, handleLoadMore, renderFooter, themedStyles]);
+    }), [combinedSongs, renderSongItem, keyExtractor, handleRefresh, refreshing, handleLoadMore, renderFooter, themedStyles, showHistoryHeader, renderHistoryHeader]);
 
     return (
         <View style={themedStyles.container}>
@@ -548,6 +631,32 @@ const styles = StyleSheet.create({
     listContainer: {
         paddingVertical: 8,
     },
+    listHeader: {
+        paddingHorizontal: 16,
+        paddingTop: 4,
+        paddingBottom: 8,
+    },
+    listHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    listHeaderTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    clearHistoryButton: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 14,
+    },
+    clearHistoryButtonText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
     songItem: {
         marginHorizontal: 16,
         marginVertical: 6,
@@ -583,6 +692,21 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         lineHeight: 18,
         opacity: 0.8,
+    },
+    recentMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 4,
+    },
+    recentMetaChip: {
+        height: 30,
+        borderRadius: 12,
+    },
+    recentMetaChipText: {
+        fontSize: 10,
+        fontWeight: '600',
+        opacity: 0.9,
     },
     songWriter: {
         fontStyle: 'italic',
@@ -695,5 +819,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         lineHeight: 16,
+    },
+    sectionDivider: {
+        marginTop: 8,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    historyCard: {
+        // subtle elevation difference for recents
     },
 });
