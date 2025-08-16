@@ -35,6 +35,13 @@ const SongsList = React.memo(() => {
             ...styles.description,
             color: theme.colors.onSurfaceVariant,
         },
+        songId: {
+            ...styles.songId,
+            color: theme.colors.onSurfaceVariant,
+            fontSize: 12,
+            opacity: 0.7,
+            marginTop: 2,
+        },
         songWriter: {
             ...styles.songWriter,
             color: theme.colors.onSurfaceVariant,
@@ -375,6 +382,9 @@ const SongsList = React.memo(() => {
                                     </Text>
                                     {/* Recent label replaced by meta chips below */}
                                 </View>
+                                <Text style={themedStyles.songId} numberOfLines={1}>
+                                    ID: {item.id}
+                                </Text>
                             </View>
                             <View style={themedStyles.headerActions}>
                                 <View style={themedStyles.contentIndicators}>
@@ -517,7 +527,7 @@ const SongsList = React.memo(() => {
             <View style={themedStyles.searchContainer}>
                 <View style={themedStyles.searchRow}>
                     <Searchbar
-                        placeholder="Search songs by title or lyrics..."
+                        placeholder="Search by title, lyrics, or ID..."
                         onChangeText={handleSearchChange}
                         value={searchQuery}
                         style={themedStyles.searchBar}
@@ -672,6 +682,10 @@ const styles = StyleSheet.create({
         lineHeight: 18,
         opacity: 0.8,
     },
+    songId: {
+        fontSize: 12,
+        opacity: 0.7,
+    },
     recentMetaRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -689,6 +703,10 @@ const styles = StyleSheet.create({
     },
     songWriter: {
         fontStyle: 'italic',
+        fontSize: 12,
+        opacity: 0.7,
+    },
+    songId: {
         fontSize: 12,
         opacity: 0.7,
     },
