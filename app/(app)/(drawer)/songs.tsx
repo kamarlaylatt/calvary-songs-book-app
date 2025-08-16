@@ -382,12 +382,12 @@ const SongsList = React.memo(() => {
         const isFromHistory = index < historySongs.length && !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId && !debouncedLanguageId;
 
         return (
-            <TouchableOpacity
-                style={themedStyles.songItem}
-                onPress={() => router.push(`/song/${item.slug}`)}
-            >
-                <Card style={[themedStyles.card, (isFromHistory ? styles.historyCard : null)]}
-                    accessibilityLabel={isFromHistory ? 'Recently viewed song' : 'Song'}>
+            <View style={themedStyles.songItem}>
+                <Card 
+                    style={[themedStyles.card, (isFromHistory ? styles.historyCard : null)]}
+                    accessibilityLabel={isFromHistory ? 'Recently viewed song' : 'Song'}
+                    onPress={() => router.push(`/song/${item.slug}`)}
+                >
                     <Card.Content style={themedStyles.cardContent}>
                         {/* Header with title, style, and delete button for history items */}
                         <View style={themedStyles.songHeader}>
@@ -475,7 +475,7 @@ const SongsList = React.memo(() => {
                         <Divider />
                     </View>
                 )}
-            </TouchableOpacity>
+            </View>
         );
     }, [router, themedStyles, theme, historySongs.length, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId, handleDeleteFromHistory]);
 
