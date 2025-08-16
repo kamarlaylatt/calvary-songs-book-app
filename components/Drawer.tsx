@@ -43,6 +43,12 @@ export default function DrawerComponent() {
             />
             <Drawer.Item
                 style={themedStyles.drawerItem}
+                icon="heart"
+                label="Favorites"
+                onPress={() => router.push('/(app)/(drawer)/favorites')}
+            />
+            <Drawer.Item
+                style={themedStyles.drawerItem}
                 icon="information"
                 label="About"
                 onPress={() => router.push('/(app)/(drawer)/about')}

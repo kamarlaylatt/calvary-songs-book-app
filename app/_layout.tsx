@@ -1,4 +1,5 @@
 import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
+import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Slot } from 'expo-router';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -9,7 +10,9 @@ function AppContent() {
 
     return (
         <PaperProvider theme={theme}>
-            <Slot />
+            <FavoritesProvider>
+                <Slot />
+            </FavoritesProvider>
         </PaperProvider>
     );
 }

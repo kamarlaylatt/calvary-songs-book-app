@@ -6,8 +6,10 @@ import RenderHtml from 'react-native-render-html';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { SongDetail, fetchSongBySlug } from '../../../services/api';
 import { addSongToHistory, initializeDatabase } from '../../../services/songHistory';
+import { useFavorites } from '../../../contexts/FavoritesContext';
 
 function SongDetailScreen() {
+    const { favoriteStatus, toggleFavorite, checkFavoriteStatus } = useFavorites();
     const params = useLocalSearchParams<{ slug: string }>();
     const slug = typeof params.slug === 'string' ? params.slug : null;
     const theme = useTheme();
@@ -76,6 +78,11 @@ function SongDetailScreen() {
             setError(null);
             const songData = await fetchSongBySlug(slug);
             setSong(songData);
+
+            // Check if song is in favorites
+            if (songData) {
+                await checkFavoriteStatus(songData.slug);
+            }
 
             // Add song to history when successfully loaded (only on initial load, not refresh)
             if (!isRefresh && songData) {
@@ -276,13 +283,21 @@ function SongDetailScreen() {
                         <Text variant="headlineMedium" style={themedStyles.title}>
                             {song.title}
                         </Text>
-                        {song.code && (
-                            <Surface style={themedStyles.codeChip} elevation={1}>
-                                <Text variant="labelMedium" style={themedStyles.codeText}>
-                                    #{song.code}
-                                </Text>
-                            </Surface>
-                        )}
+                        <View style={themedStyles.headerActions}>
+                            <IconButton
+                                icon={favoriteStatus[song.slug] ? "heart" : "heart-outline"}
+                                iconColor={favoriteStatus[song.slug] ? theme.colors.error : theme.colors.onSurface}
+                                size={24}
+                                onPress={() => toggleFavorite(song)}
+                            />
+                            {song.code && (
+                                <Surface style={themedStyles.codeChip} elevation={1}>
+                                    <Text variant="labelMedium" style={themedStyles.codeText}>
+                                        #{song.code}
+                                    </Text>
+                                </Surface>
+                            )}
+                        </View>
                     </View>
 
                     {song.song_writer && (
@@ -481,6 +496,11 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: 12,
         fontWeight: '700',
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     codeChip: {
         paddingHorizontal: 12,
