@@ -135,6 +135,30 @@ const SongsList = React.memo(() => {
         return `${days}d ago`;
     }, []);
 
+    // Convert simple HTML lyrics into plain text for preview
+    const htmlToPlainText = useCallback((html?: string) => {
+        if (!html) return '';
+        try {
+            const withLineBreaks = html
+                .replace(/<br\s*\/?>/gi, ' ')
+                .replace(/<\/p>/gi, ' ')
+                .replace(/<p[^>]*>/gi, ' ')
+                .replace(/<\/li>/gi, ' ')
+                .replace(/<li[^>]*>/gi, ' ');
+            const withoutTags = withLineBreaks.replace(/<[^>]+>/g, ' ');
+            const withoutEntities = withoutTags
+                .replace(/&nbsp;/gi, ' ')
+                .replace(/&/gi, '&')
+                .replace(/"/gi, '"')
+                .replace(/'/gi, "'")
+                .replace(/</gi, '<')
+                .replace(/>/gi, '>');
+            return withoutEntities.replace(/\s+/g, ' ').trim();
+        } catch {
+            return (html || '').replace(/\s+/g, ' ').trim();
+        }
+    }, []);
+
     // Debounce search query
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -264,7 +288,7 @@ const SongsList = React.memo(() => {
                 description: item.description,
                 style: { id: '', name: item.style_name || '' },
                 categories: item.categories ? JSON.parse(item.categories) : [],
-                lyrics: undefined, // Not stored in history
+                lyrics: item.lyrics, // Stored in history
                 music_notes: undefined, // Not stored in history
                 youtube: undefined, // Not stored in history
                 visited_at: item.visited_at,
@@ -351,23 +375,21 @@ const SongsList = React.memo(() => {
                                     </Text>
                                     {/* Recent label replaced by meta chips below */}
                                 </View>
-                                {item.song_writer && (
-                                    <Text variant="bodySmall" style={themedStyles.songWriter}>
-                                        {item.song_writer}
-                                    </Text>
-                                )}
                             </View>
                             <View style={themedStyles.headerActions}>
-                                {item.style?.name && (
-                                    <Chip
-                                        mode="outlined"
-                                        compact
-                                        style={[themedStyles.styleChip]}
-                                        textStyle={themedStyles.chipText}
-                                    >
-                                        <Text>{item.style.name}</Text>
-                                    </Chip>
-                                )}
+                                <View style={themedStyles.contentIndicators}>
+                                    {item.youtube && (
+                                        <Chip
+                                            mode="outlined"
+                                            compact
+                                            icon="youtube"
+                                            style={themedStyles.contentChip}
+                                            textStyle={themedStyles.contentChipText}
+                                        >
+                                            Video
+                                        </Chip>
+                                    )}
+                                </View>
                                 {isFromHistory && (
                                     <TouchableOpacity
                                         style={themedStyles.deleteButton}
@@ -378,25 +400,6 @@ const SongsList = React.memo(() => {
                                 )}
                             </View>
                         </View>
-                        {isFromHistory && (
-                            <View style={themedStyles.recentMetaRow}>
-                                <Chip mode="outlined" compact style={themedStyles.recentMetaChip} textStyle={themedStyles.recentMetaChipText}>
-                                    Viewed {formatRelativeTime(item.visited_at)}
-                                </Chip>
-                                {!!item.visit_count && item.visit_count > 1 && (
-                                    <Chip mode="outlined" compact style={themedStyles.recentMetaChip} textStyle={themedStyles.recentMetaChipText}>
-                                        {item.visit_count}×
-                                    </Chip>
-                                )}
-                            </View>
-                        )}
-
-                        {/* Description */}
-                        {item.description && (
-                            <Text variant="bodySmall" style={themedStyles.description} numberOfLines={2}>
-                                {item.description}
-                            </Text>
-                        )}
 
                         {/* Categories - Show max 3, then +N more */}
                         {item.categories && item.categories.length > 0 && (
@@ -427,39 +430,26 @@ const SongsList = React.memo(() => {
 
                         {/* Footer with content indicators */}
                         <View style={themedStyles.songFooter}>
-                            <View style={themedStyles.contentIndicators}>
-                                {item.music_notes && (
-                                    <Chip
-                                        mode="outlined"
-                                        compact
-                                        icon="music-note"
-                                        style={themedStyles.contentChip}
-                                        textStyle={themedStyles.contentChipText}
-                                    >
-                                        Notes
-                                    </Chip>
-                                )}
-                                {item.youtube && (
-                                    <Chip
-                                        mode="outlined"
-                                        compact
-                                        icon="youtube"
-                                        style={themedStyles.contentChip}
-                                        textStyle={themedStyles.contentChipText}
-                                    >
-                                        Video
-                                    </Chip>
-                                )}
-                            </View>
+                            {item.lyrics || isFromHistory ? (
+                                <Text style={themedStyles.description} numberOfLines={3}>
+                                    {(() => {
+                                        const plain = htmlToPlainText(item.lyrics);
+                                        const words = plain.split(/\s+/).filter(Boolean);
+                                        const sample = words.slice(0, 30).join(' ');
+                                        return words.length > 30 ? sample + '…' : sample;
+                                    })()}
+                                </Text>
+                            ) : null}
                         </View>
 
-                        {isFromHistory && index === historySongs.length - 1 && (
-                            <View style={themedStyles.sectionDivider}>
-                                <Divider />
-                            </View>
-                        )}
+
                     </Card.Content>
                 </Card>
+                {isFromHistory && index === historySongs.length - 1 && (
+                    <View style={themedStyles.sectionDivider}>
+                        <Divider />
+                    </View>
+                )}
             </TouchableOpacity>
         );
     }, [router, themedStyles, theme, historySongs.length, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, handleDeleteFromHistory]);

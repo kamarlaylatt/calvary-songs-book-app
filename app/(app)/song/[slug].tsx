@@ -87,7 +87,8 @@ function SongDetailScreen() {
                         song_writer: songData.song_writer,
                         style: songData.style,
                         description: songData.description,
-                        categories: songData.categories
+                        categories: songData.categories,
+                        lyrics: songData.lyrics
                     });
                 } catch (historyError) {
                     console.error('Failed to add song to history:', historyError);

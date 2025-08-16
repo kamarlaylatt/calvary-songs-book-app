@@ -9,6 +9,7 @@ export interface SongHistoryItem {
     style_name?: string;
     description?: string;
     categories: string; // JSON string of categories
+    lyrics?: string; // HTML lyrics
     visited_at: string; // ISO date string
     visit_count: number;
 }
@@ -44,6 +45,7 @@ export const initializeDatabase = async (): Promise<void> => {
                     style_name TEXT,
                     description TEXT,
                     categories TEXT,
+                    lyrics TEXT,
                     visited_at TEXT NOT NULL,
                     visit_count INTEGER DEFAULT 1
                 );
@@ -53,6 +55,19 @@ export const initializeDatabase = async (): Promise<void> => {
             await db.execAsync(`
                 CREATE INDEX IF NOT EXISTS idx_visited_at ON song_history(visited_at DESC);
             `);
+
+            // Migration: ensure "lyrics" column exists for older installs
+            try {
+                const columns = await db!.getAllAsync<{ name: string }>(
+                    'PRAGMA table_info(song_history)'
+                );
+                const hasLyrics = Array.isArray(columns) && columns.some(c => c.name === 'lyrics');
+                if (!hasLyrics) {
+                    await db!.execAsync('ALTER TABLE song_history ADD COLUMN lyrics TEXT;');
+                }
+            } catch (migrateErr) {
+                console.warn('Lyrics column migration check failed:', migrateErr);
+            }
 
             console.log('Song history database initialized successfully');
         } catch (error) {
@@ -75,6 +90,7 @@ export const addSongToHistory = async (song: {
     style?: { name: string };
     description?: string;
     categories: Array<{ id: string; name: string }>;
+    lyrics?: string;
 }): Promise<void> => {
     // Ensure database is initialized
     await initializeDatabase();
@@ -102,6 +118,7 @@ export const addSongToHistory = async (song: {
                     style_name = ?,
                     description = ?,
                     categories = ?,
+                    lyrics = ?,
                     visited_at = ?,
                     visit_count = visit_count + 1
                 WHERE slug = ?
@@ -111,14 +128,15 @@ export const addSongToHistory = async (song: {
                 song.style?.name || null,
                 song.description || null,
                 categoriesJson,
+                song.lyrics || null,
                 visitedAt,
                 song.slug
             ]);
         } else {
             // Insert new record
             await db!.runAsync(`
-                INSERT INTO song_history (id, slug, title, song_writer, style_name, description, categories, visited_at, visit_count)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
+                INSERT INTO song_history (id, slug, title, song_writer, style_name, description, categories, lyrics, visited_at, visit_count)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             `, [
                 song.id,
                 song.slug,
@@ -127,6 +145,7 @@ export const addSongToHistory = async (song: {
                 song.style?.name || null,
                 song.description || null,
                 categoriesJson,
+                song.lyrics || null,
                 visitedAt
             ]);
 
