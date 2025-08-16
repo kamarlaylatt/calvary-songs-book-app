@@ -18,6 +18,10 @@ export interface Song {
         id: string;
         name: string;
     }>;
+    song_languages: Array<{
+        id: string;
+        name: string;
+    }>;
     lyrics?: string;
     music_notes?: string;
 }
@@ -41,6 +45,7 @@ export interface FetchSongsParams {
     search?: string;
     style_id?: string;
     category_id?: string;
+    song_language_id?: string;
     limit?: number;
     page?: number;
 }
@@ -53,6 +58,7 @@ export const fetchSongs = async (params?: FetchSongsParams): Promise<PaginatedRe
         if (params?.search) queryParams.append('search', params.search);
         if (params?.style_id) queryParams.append('style_id', params.style_id);
         if (params?.category_id) queryParams.append('category_id', params.category_id);
+        if (params?.song_language_id) queryParams.append('song_language_id', params.song_language_id);
         if (params?.limit) queryParams.append('limit', params.limit.toString());
         if (params?.page) queryParams.append('page', params.page.toString());
 
@@ -75,6 +81,7 @@ export const fetchSongs = async (params?: FetchSongsParams): Promise<PaginatedRe
                     song_writer: song.song_writer,
                     style: song.style || { id: '', name: '' },
                     categories: song.categories || [],
+                    song_languages: song.song_languages || [],
                     lyrics: song.lyrics,
                     music_notes: song.music_notes
                 })),
@@ -101,6 +108,7 @@ export const fetchSongs = async (params?: FetchSongsParams): Promise<PaginatedRe
                     song_writer: song.song_writer,
                     style: song.style || { id: '', name: 'Unknown' },
                     categories: song.categories || [],
+                    song_languages: song.song_languages || [],
                     lyrics: song.lyrics,
                     music_notes: song.music_notes
                 }))
@@ -151,6 +159,7 @@ export const fetchSongBySlug = async (slug: string): Promise<SongDetail> => {
             song_writer: songData.song_writer,
             style: songData.style || { id: '', name: 'Unknown' },
             categories: songData.categories || [],
+            song_languages: songData.song_languages || [],
             lyrics: songData.lyrics,
             music_notes: songData.music_notes,
             created_at: songData.created_at || new Date().toISOString(),
@@ -173,9 +182,15 @@ export interface Style {
     name: string;
 }
 
+export interface SongLanguage {
+    id: string;
+    name: string;
+}
+
 export interface SearchFilters {
     categories: Category[];
     styles: Style[];
+    song_languages: SongLanguage[];
 }
 
 export const fetchSearchFilters = async (): Promise<SearchFilters> => {
@@ -194,6 +209,10 @@ export const fetchSearchFilters = async (): Promise<SearchFilters> => {
             styles: response.data.styles.map((style: any) => ({
                 id: style.id.toString(),
                 name: style.name
+            })),
+            song_languages: response.data.song_languages.map((language: any) => ({
+                id: language.id.toString(),
+                name: language.name
             }))
         };
     } catch (error) {

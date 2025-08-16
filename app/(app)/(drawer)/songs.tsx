@@ -16,6 +16,7 @@ interface Song {
     song_writer?: string;
     style: { id: string; name: string };
     categories: Array<{ id: string; name: string }>;
+    song_languages: Array<{ id: string; name: string }>;
     lyrics?: string;
     music_notes?: string;
     visited_at?: string;
@@ -114,8 +115,10 @@ const SongsList = React.memo(() => {
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | undefined>();
     const [selectedStyleId, setSelectedStyleId] = useState<string | undefined>();
+    const [selectedLanguageId, setSelectedLanguageId] = useState<string | undefined>();
     const [debouncedCategoryId, setDebouncedCategoryId] = useState<string | undefined>();
     const [debouncedStyleId, setDebouncedStyleId] = useState<string | undefined>();
+    const [debouncedLanguageId, setDebouncedLanguageId] = useState<string | undefined>();
     const [filtersExpanded, setFiltersExpanded] = useState(false);
     const [pagination, setPagination] = useState({
         current_page: 1,
@@ -124,8 +127,8 @@ const SongsList = React.memo(() => {
     });
 
     const showHistoryHeader = useMemo(() => {
-        return !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId && historySongs.length > 0;
-    }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, historySongs.length]);
+        return !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId && !debouncedLanguageId && historySongs.length > 0;
+    }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId, historySongs.length]);
 
     const formatRelativeTime = useCallback((isoDate?: string) => {
         if (!isoDate) return '';
@@ -180,15 +183,16 @@ const SongsList = React.memo(() => {
         const timer = setTimeout(() => {
             setDebouncedCategoryId(selectedCategoryId);
             setDebouncedStyleId(selectedStyleId);
+            setDebouncedLanguageId(selectedLanguageId);
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [selectedCategoryId, selectedStyleId]);
+    }, [selectedCategoryId, selectedStyleId, selectedLanguageId]);
 
     // Load songs when debounced search query or filters change
     useEffect(() => {
-        loadSongs(1, false, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId);
-    }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
+        loadSongs(1, false, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId);
+    }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId]);
 
     useEffect(() => {
         // Initialize database and load data
@@ -217,7 +221,8 @@ const SongsList = React.memo(() => {
         refresh: boolean = false,
         search?: string,
         categoryId?: string,
-        styleId?: string
+        styleId?: string,
+        languageId?: string
     ) => {
         if (page === 1 && !refresh) {
             setLoading(true);
@@ -259,6 +264,14 @@ const SongsList = React.memo(() => {
                 params.style_id = debouncedStyleId;
             }
 
+            if (languageId !== undefined) {
+                if (languageId) {
+                    params.song_language_id = languageId;
+                }
+            } else if (debouncedLanguageId) {
+                params.song_language_id = debouncedLanguageId;
+            }
+
             const response = await fetchSongs(params) as PaginatedResponse;
 
             if (page === 1 || refresh) {
@@ -295,6 +308,7 @@ const SongsList = React.memo(() => {
                 description: item.description,
                 style: { id: '', name: item.style_name || '' },
                 categories: item.categories ? JSON.parse(item.categories) : [],
+                song_languages: [], // Not stored in history
                 lyrics: item.lyrics, // Stored in history
                 music_notes: undefined, // Not stored in history
                 youtube: undefined, // Not stored in history
@@ -311,14 +325,14 @@ const SongsList = React.memo(() => {
 
     const handleRefresh = useCallback(async () => {
         await loadHistory(); // Refresh history as well
-        loadSongs(1, true, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId);
-    }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
+        loadSongs(1, true, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId);
+    }, [debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId]);
 
     const handleLoadMore = useCallback(() => {
         if (pagination.current_page < pagination.last_page && !loadingMore) {
-            loadSongs(pagination.current_page + 1, false, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId);
+            loadSongs(pagination.current_page + 1, false, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId);
         }
-    }, [pagination, loadingMore, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
+    }, [pagination, loadingMore, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId]);
 
     const handleSearchChange = useCallback((query: string) => {
         setSearchQuery(query);
@@ -328,14 +342,16 @@ const SongsList = React.memo(() => {
         setSearchQuery('');
     }, []);
 
-    const handleFiltersChange = useCallback((filters: { categoryId?: string; styleId?: string }) => {
+    const handleFiltersChange = useCallback((filters: { categoryId?: string; styleId?: string; languageId?: string }) => {
         setSelectedCategoryId(filters.categoryId);
         setSelectedStyleId(filters.styleId);
+        setSelectedLanguageId(filters.languageId);
     }, []);
 
     const handleClearFilters = useCallback(() => {
         setSelectedCategoryId(undefined);
         setSelectedStyleId(undefined);
+        setSelectedLanguageId(undefined);
         setFiltersExpanded(false);
     }, []);
 
@@ -363,7 +379,7 @@ const SongsList = React.memo(() => {
     }, []);
 
     const renderSongItem = useCallback(({ item, index }: { item: Song; index: number }) => {
-        const isFromHistory = index < historySongs.length && !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId;
+        const isFromHistory = index < historySongs.length && !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId && !debouncedLanguageId;
 
         return (
             <TouchableOpacity
@@ -452,7 +468,6 @@ const SongsList = React.memo(() => {
                             ) : null}
                         </View>
 
-
                     </Card.Content>
                 </Card>
                 {isFromHistory && index === historySongs.length - 1 && (
@@ -462,7 +477,7 @@ const SongsList = React.memo(() => {
                 )}
             </TouchableOpacity>
         );
-    }, [router, themedStyles, theme, historySongs.length, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, handleDeleteFromHistory]);
+    }, [router, themedStyles, theme, historySongs.length, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId, handleDeleteFromHistory]);
 
     const renderFooter = useCallback(() => {
         if (!loadingMore) return null;
@@ -478,7 +493,7 @@ const SongsList = React.memo(() => {
 
     // Combine history and regular songs, removing duplicates
     const combinedSongs = useMemo(() => {
-        if (debouncedSearchQuery || debouncedCategoryId || debouncedStyleId) {
+        if (debouncedSearchQuery || debouncedCategoryId || debouncedStyleId || debouncedLanguageId) {
             // If filtering, show only regular songs
             return songs;
         }
@@ -489,7 +504,7 @@ const SongsList = React.memo(() => {
 
         // Return history first, then regular songs
         return [...historySongs, ...filteredSongs];
-    }, [songs, historySongs, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId]);
+    }, [songs, historySongs, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId]);
 
     const renderHistoryHeader = useCallback(() => (
         <View style={themedStyles.listHeader}>
@@ -542,6 +557,7 @@ const SongsList = React.memo(() => {
                         onToggleExpanded={handleToggleFiltersExpanded}
                         selectedCategoryId={selectedCategoryId}
                         selectedStyleId={selectedStyleId}
+                        selectedLanguageId={selectedLanguageId}
                         onClearFilters={handleClearFilters}
                         inline={true}
                     />

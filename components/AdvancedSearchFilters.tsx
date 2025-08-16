@@ -7,11 +7,13 @@ interface AdvancedSearchFiltersProps {
     onFiltersChange: (filters: {
         categoryId?: string;
         styleId?: string;
+        languageId?: string;
     }) => void;
     isExpanded: boolean;
     onToggleExpanded: () => void;
     selectedCategoryId?: string;
     selectedStyleId?: string;
+    selectedLanguageId?: string;
     onClearFilters: () => void;
     inline?: boolean;
 }
@@ -22,15 +24,17 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
     onToggleExpanded,
     selectedCategoryId,
     selectedStyleId,
+    selectedLanguageId,
     onClearFilters,
     inline = false,
 }) => {
     const theme = useTheme();
-    const [searchFilters, setSearchFilters] = useState<SearchFilters>({ categories: [], styles: [] });
+    const [searchFilters, setSearchFilters] = useState<SearchFilters>({ categories: [], styles: [], song_languages: [] });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
     const [styleMenuVisible, setStyleMenuVisible] = useState(false);
+    const [languageMenuVisible, setLanguageMenuVisible] = useState(false);
     const [animatedHeight] = useState(new Animated.Value(0));
 
     // Create theme-aware styles
@@ -113,8 +117,9 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
         onFiltersChange({
             categoryId: newCategoryId,
             styleId: selectedStyleId,
+            languageId: selectedLanguageId,
         });
-    }, [selectedCategoryId, selectedStyleId, onFiltersChange]);
+    }, [selectedCategoryId, selectedStyleId, selectedLanguageId, onFiltersChange]);
 
     const handleStyleSelect = useCallback((styleId: string) => {
         setStyleMenuVisible(false);
@@ -122,8 +127,19 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
         onFiltersChange({
             categoryId: selectedCategoryId,
             styleId: newStyleId,
+            languageId: selectedLanguageId,
         });
-    }, [selectedCategoryId, selectedStyleId, onFiltersChange]);
+    }, [selectedCategoryId, selectedStyleId, selectedLanguageId, onFiltersChange]);
+
+    const handleLanguageSelect = useCallback((languageId: string) => {
+        setLanguageMenuVisible(false);
+        const newLanguageId = languageId === selectedLanguageId ? undefined : languageId;
+        onFiltersChange({
+            categoryId: selectedCategoryId,
+            styleId: selectedStyleId,
+            languageId: newLanguageId,
+        });
+    }, [selectedCategoryId, selectedStyleId, selectedLanguageId, onFiltersChange]);
 
     const getSelectedCategoryName = () => {
         if (!selectedCategoryId) return 'All Categories';
@@ -137,7 +153,13 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
         return style?.name || 'Unknown Style';
     };
 
-    const hasActiveFilters = selectedCategoryId || selectedStyleId;
+    const getSelectedLanguageName = () => {
+        if (!selectedLanguageId) return 'All Languages';
+        const language = searchFilters.song_languages.find(l => l.id === selectedLanguageId);
+        return language?.name || 'Unknown Language';
+    };
+
+    const hasActiveFilters = selectedCategoryId || selectedStyleId || selectedLanguageId;
 
     const animatedStyle = {
         maxHeight: animatedHeight.interpolate({
@@ -263,6 +285,45 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                                             </Menu>
                                         </View>
 
+                                        {/* Language Filter */}
+                                        <View style={themedStyles.filterSection}>
+                                            <Text variant="titleSmall" style={themedStyles.sectionTitle}>
+                                                Language
+                                            </Text>
+                                            <Menu
+                                                visible={languageMenuVisible}
+                                                onDismiss={() => setLanguageMenuVisible(false)}
+                                                anchor={
+                                                    <Button
+                                                        mode="outlined"
+                                                        onPress={() => setLanguageMenuVisible(true)}
+                                                        style={[
+                                                            themedStyles.filterButton,
+                                                            selectedLanguageId && themedStyles.activeFilterButton
+                                                        ]}
+                                                        icon="chevron-down"
+                                                        contentStyle={themedStyles.filterButtonContent}
+                                                    >
+                                                        {getSelectedLanguageName()}
+                                                    </Button>
+                                                }
+                                            >
+                                                <Menu.Item
+                                                    onPress={() => handleLanguageSelect('')}
+                                                    title="All Languages"
+                                                    leadingIcon={!selectedLanguageId ? 'check' : undefined}
+                                                />
+                                                {searchFilters.song_languages.map((language) => (
+                                                    <Menu.Item
+                                                        key={language.id}
+                                                        onPress={() => handleLanguageSelect(language.id)}
+                                                        title={language.name}
+                                                        leadingIcon={selectedLanguageId === language.id ? 'check' : undefined}
+                                                    />
+                                                ))}
+                                            </Menu>
+                                        </View>
+
                                         {/* Clear All Button */}
                                         {hasActiveFilters && (
                                             <Button
@@ -330,6 +391,15 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                                 style={themedStyles.activeFilterChip}
                             >
                                 {getSelectedStyleName()}
+                            </Chip>
+                        )}
+                        {selectedLanguageId && (
+                            <Chip
+                                mode="flat"
+                                onClose={() => handleLanguageSelect(selectedLanguageId)}
+                                style={themedStyles.activeFilterChip}
+                            >
+                                {getSelectedLanguageName()}
                             </Chip>
                         )}
                     </View>
@@ -432,6 +502,45 @@ const AdvancedSearchFilters: React.FC<AdvancedSearchFiltersProps> = ({
                                                 onPress={() => handleStyleSelect(style.id)}
                                                 title={style.name}
                                                 leadingIcon={selectedStyleId === style.id ? 'check' : undefined}
+                                            />
+                                        ))}
+                                    </Menu>
+                                </View>
+
+                                {/* Language Filter */}
+                                <View style={themedStyles.filterSection}>
+                                    <Text variant="titleSmall" style={themedStyles.sectionTitle}>
+                                        Language
+                                    </Text>
+                                    <Menu
+                                        visible={languageMenuVisible}
+                                        onDismiss={() => setLanguageMenuVisible(false)}
+                                        anchor={
+                                            <Button
+                                                mode="outlined"
+                                                onPress={() => setLanguageMenuVisible(true)}
+                                                style={[
+                                                    themedStyles.filterButton,
+                                                    selectedLanguageId && themedStyles.activeFilterButton
+                                                ]}
+                                                icon="chevron-down"
+                                                contentStyle={themedStyles.filterButtonContent}
+                                            >
+                                                {getSelectedLanguageName()}
+                                            </Button>
+                                        }
+                                    >
+                                        <Menu.Item
+                                            onPress={() => handleLanguageSelect('')}
+                                            title="All Languages"
+                                            leadingIcon={!selectedLanguageId ? 'check' : undefined}
+                                        />
+                                        {searchFilters.song_languages.map((language) => (
+                                            <Menu.Item
+                                                key={language.id}
+                                                onPress={() => handleLanguageSelect(language.id)}
+                                                title={language.name}
+                                                leadingIcon={selectedLanguageId === language.id ? 'check' : undefined}
                                             />
                                         ))}
                                     </Menu>
