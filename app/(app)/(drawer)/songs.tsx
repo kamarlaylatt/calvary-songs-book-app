@@ -706,10 +706,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         opacity: 0.7,
     },
-    songId: {
-        fontSize: 12,
-        opacity: 0.7,
-    },
     songFooter: {
         marginTop: 8,
     },
