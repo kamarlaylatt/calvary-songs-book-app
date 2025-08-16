@@ -54,7 +54,7 @@ export default function AboutScreen() {
                         </View>
 
                         <Text variant="bodyMedium" style={themedStyles.description}>
-                            I’m actively developing this app—expect ongoing improvements and new features in future releases.
+                            We are actively developing this app—expect ongoing improvements and new features in future releases.
                         </Text>
 
                         <Text variant="bodyMedium" style={themedStyles.description}>

@@ -428,17 +428,6 @@ const SongsList = React.memo(() => {
                         {/* Footer with content indicators */}
                         <View style={themedStyles.songFooter}>
                             <View style={themedStyles.contentIndicators}>
-                                {item.lyrics && (
-                                    <Chip
-                                        mode="outlined"
-                                        compact
-                                        icon="text"
-                                        style={themedStyles.contentChip}
-                                        textStyle={themedStyles.contentChipText}
-                                    >
-                                        Lyrics
-                                    </Chip>
-                                )}
                                 {item.music_notes && (
                                     <Chip
                                         mode="outlined"

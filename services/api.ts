@@ -73,7 +73,7 @@ export const fetchSongs = async (params?: FetchSongsParams): Promise<PaginatedRe
                     youtube: song.youtube,
                     description: song.description,
                     song_writer: song.song_writer,
-                    style: song.style || { id: '', name: 'Unknown' },
+                    style: song.style || { id: '', name: '' },
                     categories: song.categories || [],
                     lyrics: song.lyrics,
                     music_notes: song.music_notes
