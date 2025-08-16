@@ -19,7 +19,7 @@ export default function Layout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <Drawer
-                initialRouteName="songs"
+                // initialRouteName="songs"
                 drawerContent={DrawerComponent}
                 screenOptions={{
                     headerStyle: { backgroundColor: theme.colors.primary, borderBottomColor: theme.colors.outline },
@@ -27,12 +27,12 @@ export default function Layout() {
                 }}
                 screenLayout={customLayout}
             >
-                <Drawer.Screen
+                {/* <Drawer.Screen
                     name="index"
                     options={{
                         title: "Home",
                     }}
-                />
+                /> */}
                 <Drawer.Screen
                     name="songs"
                     options={{
