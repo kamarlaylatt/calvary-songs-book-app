@@ -145,6 +145,7 @@ const styles = StyleSheet.create({
     },
     listContent: {
         padding: 16,
+        paddingBottom: 30, // Match padding with songs list
     },
     card: {
         marginBottom: 12,

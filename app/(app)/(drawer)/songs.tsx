@@ -383,7 +383,7 @@ const SongsList = React.memo(() => {
 
         return (
             <View style={themedStyles.songItem}>
-                <Card 
+                <Card
                     style={[themedStyles.card, (isFromHistory ? styles.historyCard : null)]}
                     accessibilityLabel={isFromHistory ? 'Recently viewed song' : 'Song'}
                     onPress={() => router.push(`/song/${item.slug}`)}
@@ -635,6 +635,7 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         paddingVertical: 8,
+        paddingBottom: 30,
     },
     listHeader: {
         paddingHorizontal: 16,
