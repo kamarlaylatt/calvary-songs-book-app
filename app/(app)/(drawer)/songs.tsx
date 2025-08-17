@@ -1,7 +1,9 @@
+import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Card, Chip, Divider, Searchbar, Text, useTheme } from 'react-native-paper';
+import PagerView from 'react-native-pager-view';
+import { Card, Chip, Searchbar, Text, useTheme } from 'react-native-paper';
 import AdvancedSearchFilters from '../../../components/AdvancedSearchFilters';
 import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
 import { clearSongHistory, getSongHistory, initializeDatabase, removeSongFromHistory, SongHistoryItem } from '../../../services/songHistory';
@@ -105,6 +107,43 @@ const SongsList = React.memo(() => {
             ...styles.sectionDivider,
             borderBottomColor: theme.colors.surfaceVariant,
         },
+        pagerView: {
+            ...styles.pagerView,
+        },
+        pageContainer: {
+            ...styles.pageContainer,
+        },
+        customTabBar: {
+            ...styles.customTabBar,
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: theme.colors.outline,
+        },
+        tabButton: {
+            ...styles.tabButton,
+        },
+        activeTabButton: {
+            ...styles.activeTabButton,
+            borderBottomColor: theme.colors.primary,
+        },
+        tabButtonText: {
+            ...styles.tabButtonText,
+            color: theme.colors.onSurfaceVariant,
+        },
+        activeTabButtonText: {
+            ...styles.activeTabButtonText,
+            color: theme.colors.primary,
+        },
+        recentHeader: {
+            ...styles.recentHeader,
+        },
+        clearAllButton: {
+            ...styles.clearAllButton,
+            backgroundColor: theme.colors.errorContainer,
+        },
+        clearAllButtonText: {
+            ...styles.clearAllButtonText,
+            color: theme.colors.onErrorContainer,
+        },
     });
     const [songs, setSongs] = useState<Song[]>([]);
     const [historySongs, setHistorySongs] = useState<Song[]>([]);
@@ -125,6 +164,7 @@ const SongsList = React.memo(() => {
         last_page: 1,
         total: 0
     });
+    const [activeTab, setActiveTab] = useState('all');
 
     const showHistoryHeader = useMemo(() => {
         return !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId && !debouncedLanguageId && historySongs.length > 0;
@@ -323,6 +363,14 @@ const SongsList = React.memo(() => {
         }
     };
 
+    // Refresh history whenever this screen gains focus (e.g., after returning from song detail)
+    useFocusEffect(
+        useCallback(() => {
+            // No cleanup necessary
+            loadHistory();
+        }, [])
+    );
+
     const handleRefresh = useCallback(async () => {
         await loadHistory(); // Refresh history as well
         loadSongs(1, true, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId);
@@ -378,8 +426,50 @@ const SongsList = React.memo(() => {
         }
     }, []);
 
-    const renderSongItem = useCallback(({ item, index }: { item: Song; index: number }) => {
-        const isFromHistory = index < historySongs.length && !debouncedSearchQuery && !debouncedCategoryId && !debouncedStyleId && !debouncedLanguageId;
+
+    const renderFooter = useCallback(() => {
+        if (!loadingMore) return null;
+        return (
+            <View style={styles.loadingMore}>
+                <ActivityIndicator size="small" />
+            </View>
+        );
+    }, [loadingMore]);
+
+    // Memoize the key extractor function
+    const keyExtractor = useCallback((item: Song) => item.id, []);
+
+    // Get songs for All Songs tab (show all songs, even if in recent)
+    const allSongs = useMemo(() => {
+        return songs;
+    }, [songs]);
+
+    // PagerView setup
+    const pagerRef = useRef<PagerView>(null);
+    const [index, setIndex] = useState(0);
+
+    // Handle tab button press
+    const handleTabPress = useCallback((tabIndex: number) => {
+        setIndex(tabIndex);
+        setActiveTab(tabIndex === 0 ? 'all' : 'recent');
+        pagerRef.current?.setPage(tabIndex);
+    }, []);
+
+    // Handle page change from swipe
+    const handlePageSelected = useCallback((event: any) => {
+        const newIndex = event.nativeEvent.position;
+        setIndex(newIndex);
+        setActiveTab(newIndex === 0 ? 'all' : 'recent');
+    }, []);
+
+    // Get the appropriate data based on tab index (more reliable than activeTab)
+    const displayedSongs = useMemo(() => {
+        return index === 1 ? historySongs : allSongs;
+    }, [index, historySongs, allSongs]);
+
+    const renderSongItem = useCallback(({ item, index: itemIndex }: { item: Song; index: number }) => {
+        // Use activeTab for immediate response, fallback to index for consistency
+        const isFromHistory = activeTab === 'recent' || index === 1;
 
         return (
             <View style={themedStyles.songItem}>
@@ -470,72 +560,274 @@ const SongsList = React.memo(() => {
 
                     </Card.Content>
                 </Card>
-                {isFromHistory && index === historySongs.length - 1 && (
-                    <View style={themedStyles.sectionDivider}>
-                        <Divider />
-                    </View>
-                )}
             </View>
         );
-    }, [router, themedStyles, theme, historySongs.length, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId, handleDeleteFromHistory]);
+    }, [router, themedStyles, theme, handleDeleteFromHistory, index]);
 
-    const renderFooter = useCallback(() => {
-        if (!loadingMore) return null;
-        return (
-            <View style={styles.loadingMore}>
-                <ActivityIndicator size="small" />
-            </View>
-        );
-    }, [loadingMore]);
+    // Render custom tab bar
+    const renderTabBar = useCallback(() => (
+        <View style={themedStyles.customTabBar}>
+            <TouchableOpacity
+                style={[
+                    themedStyles.tabButton,
+                    index === 0 && themedStyles.activeTabButton
+                ]}
+                onPress={() => handleTabPress(0)}
+            >
+                <Text style={[
+                    themedStyles.tabButtonText,
+                    index === 0 && themedStyles.activeTabButtonText
+                ]}>
+                    All Songs
+                </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+                style={[
+                    themedStyles.tabButton,
+                    index === 1 && themedStyles.activeTabButton
+                ]}
+                onPress={() => handleTabPress(1)}
+            >
+                <Text style={[
+                    themedStyles.tabButtonText,
+                    index === 1 && themedStyles.activeTabButtonText
+                ]}>
+                    Recent ({historySongs.length})
+                </Text>
+            </TouchableOpacity>
+        </View>
+    ), [index, historySongs.length, themedStyles, handleTabPress]);
 
-    // Memoize the key extractor function
-    const keyExtractor = useCallback((item: Song) => item.id, []);
-
-    // Combine history and regular songs, removing duplicates
-    const combinedSongs = useMemo(() => {
-        if (debouncedSearchQuery || debouncedCategoryId || debouncedStyleId || debouncedLanguageId) {
-            // If filtering, show only regular songs
-            return songs;
-        }
-
-        // Create a Set of slugs from history to avoid duplicates
-        const historyIds = new Set(historySongs.map(song => song.id));
-        const filteredSongs = songs.filter(song => !historyIds.has(song.id));
-
-        // Return history first, then regular songs
-        return [...historySongs, ...filteredSongs];
-    }, [songs, historySongs, debouncedSearchQuery, debouncedCategoryId, debouncedStyleId, debouncedLanguageId]);
-
-    const renderHistoryHeader = useCallback(() => (
-        <View style={themedStyles.listHeader}>
-            <View style={themedStyles.listHeaderRow}>
-                <Text style={themedStyles.listHeaderTitle}>Recently viewed</Text>
-                <TouchableOpacity onPress={handleClearHistory} style={themedStyles.clearHistoryButton}>
-                    <Text style={themedStyles.clearHistoryButtonText}>Clear</Text>
-                </TouchableOpacity>
-            </View>
+    // Clear history header for recent tab
+    const renderRecentHeader = useCallback(() => (
+        <View style={themedStyles.recentHeader}>
+            <TouchableOpacity onPress={handleClearHistory} style={themedStyles.clearAllButton}>
+                <Text style={themedStyles.clearAllButtonText}>Clear All</Text>
+            </TouchableOpacity>
         </View>
     ), [themedStyles, handleClearHistory]);
 
-    // Memoize FlatList props for better performance
-    const flatListProps = useMemo(() => ({
-        data: combinedSongs,
-        renderItem: renderSongItem,
-        keyExtractor,
-        contentContainerStyle: themedStyles.listContainer,
-        showsVerticalScrollIndicator: false,
-        onRefresh: handleRefresh,
-        refreshing: refreshing,
-        onEndReached: handleLoadMore,
-        onEndReachedThreshold: 0.5,
-        ListFooterComponent: renderFooter,
-        ListHeaderComponent: showHistoryHeader ? renderHistoryHeader : undefined,
-        removeClippedSubviews: true,
-        maxToRenderPerBatch: 10,
-        updateCellsBatchingPeriod: 50,
-        initialNumToRender: 10,
-        windowSize: 10,
-    }), [combinedSongs, renderSongItem, keyExtractor, handleRefresh, refreshing, handleLoadMore, renderFooter, themedStyles, showHistoryHeader, renderHistoryHeader]);
+    // Render item for All Songs (no delete button)
+    const renderAllSongsItem = useCallback(({ item }: { item: Song }) => (
+        <View style={themedStyles.songItem}>
+            <Card
+                style={themedStyles.card}
+                accessibilityLabel="Song"
+                onPress={() => router.push(`/song/${item.slug}`)}
+            >
+                <Card.Content style={themedStyles.cardContent}>
+                    <View style={themedStyles.songHeader}>
+                        <View style={themedStyles.titleContainer}>
+                            <View style={themedStyles.titleRow}>
+                                <Text variant="titleMedium" style={themedStyles.songTitle} numberOfLines={2}>
+                                    {item.title}
+                                </Text>
+                            </View>
+                            <Text style={themedStyles.songId} numberOfLines={1}>
+                                ID: {item.id}
+                            </Text>
+                        </View>
+                        <View style={themedStyles.headerActions}>
+                            <View style={themedStyles.contentIndicators}>
+                                {item.youtube && (
+                                    <Chip
+                                        mode="outlined"
+                                        compact
+                                        icon="youtube"
+                                        style={themedStyles.contentChip}
+                                        textStyle={themedStyles.contentChipText}
+                                    >
+                                        Video
+                                    </Chip>
+                                )}
+                            </View>
+                        </View>
+                    </View>
+
+                    {item.categories && item.categories.length > 0 && (
+                        <View style={themedStyles.categoriesContainer}>
+                            {item.categories.slice(0, 3).map((category) => (
+                                <Chip
+                                    key={`${item.id}-${category.id}`}
+                                    mode="outlined"
+                                    compact
+                                    style={themedStyles.categoryChip}
+                                    textStyle={themedStyles.categoryChipText}
+                                >
+                                    {category.name}
+                                </Chip>
+                            ))}
+                            {item.categories.length > 3 && (
+                                <Chip
+                                    mode="outlined"
+                                    compact
+                                    style={themedStyles.categoryChip}
+                                    textStyle={themedStyles.categoryChipText}
+                                >
+                                    +{item.categories.length - 3} more
+                                </Chip>
+                            )}
+                        </View>
+                    )}
+
+                    <View style={themedStyles.songFooter}>
+                        {item.lyrics && (
+                            <Text style={themedStyles.description} numberOfLines={3}>
+                                {(() => {
+                                    const plain = htmlToPlainText(item.lyrics);
+                                    const words = plain.split(/\s+/).filter(Boolean);
+                                    const sample = words.slice(0, 30).join(' ');
+                                    return words.length > 30 ? sample + '…' : sample;
+                                })()}
+                            </Text>
+                        )}
+                    </View>
+                </Card.Content>
+            </Card>
+        </View>
+    ), [router, themedStyles, htmlToPlainText]);
+
+    // Render item for Recent Songs (with delete button)
+    const renderRecentSongsItem = useCallback(({ item }: { item: Song }) => (
+        <View style={themedStyles.songItem}>
+            <Card
+                style={[themedStyles.card, styles.historyCard]}
+                accessibilityLabel="Recently viewed song"
+                onPress={() => router.push(`/song/${item.slug}`)}
+            >
+                <Card.Content style={themedStyles.cardContent}>
+                    <View style={themedStyles.songHeader}>
+                        <View style={themedStyles.titleContainer}>
+                            <View style={themedStyles.titleRow}>
+                                <Text variant="titleMedium" style={themedStyles.songTitle} numberOfLines={2}>
+                                    {item.title}
+                                </Text>
+                            </View>
+                            <Text style={themedStyles.songId} numberOfLines={1}>
+                                ID: {item.id}
+                            </Text>
+                        </View>
+                        <View style={themedStyles.headerActions}>
+                            <View style={themedStyles.contentIndicators}>
+                                {item.youtube && (
+                                    <Chip
+                                        mode="outlined"
+                                        compact
+                                        icon="youtube"
+                                        style={themedStyles.contentChip}
+                                        textStyle={themedStyles.contentChipText}
+                                    >
+                                        Video
+                                    </Chip>
+                                )}
+                            </View>
+                            <TouchableOpacity
+                                style={themedStyles.deleteButton}
+                                onPress={(event) => handleDeleteFromHistory(item.slug, event)}
+                            >
+                                <Text style={themedStyles.deleteButtonText}>×</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {item.categories && item.categories.length > 0 && (
+                        <View style={themedStyles.categoriesContainer}>
+                            {item.categories.slice(0, 3).map((category) => (
+                                <Chip
+                                    key={`${item.id}-${category.id}`}
+                                    mode="outlined"
+                                    compact
+                                    style={themedStyles.categoryChip}
+                                    textStyle={themedStyles.categoryChipText}
+                                >
+                                    {category.name}
+                                </Chip>
+                            ))}
+                            {item.categories.length > 3 && (
+                                <Chip
+                                    mode="outlined"
+                                    compact
+                                    style={themedStyles.categoryChip}
+                                    textStyle={themedStyles.categoryChipText}
+                                >
+                                    +{item.categories.length - 3} more
+                                </Chip>
+                            )}
+                        </View>
+                    )}
+
+                    <View style={themedStyles.songFooter}>
+                        {item.lyrics && (
+                            <Text style={themedStyles.description} numberOfLines={3}>
+                                {(() => {
+                                    const plain = htmlToPlainText(item.lyrics);
+                                    const words = plain.split(/\s+/).filter(Boolean);
+                                    const sample = words.slice(0, 30).join(' ');
+                                    return words.length > 30 ? sample + '…' : sample;
+                                })()}
+                            </Text>
+                        )}
+                    </View>
+                </Card.Content>
+            </Card>
+        </View>
+    ), [router, themedStyles, htmlToPlainText, handleDeleteFromHistory]);
+
+    // All Songs Scene
+    const AllSongsRoute = useCallback(() => (
+        <FlatList
+            data={allSongs}
+            renderItem={renderAllSongsItem}
+            keyExtractor={keyExtractor}
+            contentContainerStyle={themedStyles.listContainer}
+            showsVerticalScrollIndicator={false}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={renderFooter}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            initialNumToRender={10}
+            windowSize={10}
+            ListEmptyComponent={() => (
+                <View style={themedStyles.emptyState}>
+                    <Text style={themedStyles.emptyText}>
+                        {debouncedSearchQuery ? 'No songs found' : 'No songs available'}
+                    </Text>
+                    <Text style={themedStyles.emptySubtext}>
+                        {loading ? 'Loading...' : debouncedSearchQuery ? 'Try a different search term' : 'Pull to refresh'}
+                    </Text>
+                </View>
+            )}
+        />
+    ), [allSongs, renderAllSongsItem, keyExtractor, themedStyles, handleRefresh, refreshing, handleLoadMore, renderFooter, debouncedSearchQuery, loading]);
+
+    // Recent Songs Scene
+    const RecentSongsRoute = useCallback(() => (
+        <FlatList
+            data={historySongs}
+            renderItem={renderRecentSongsItem}
+            keyExtractor={keyExtractor}
+            contentContainerStyle={themedStyles.listContainer}
+            showsVerticalScrollIndicator={false}
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+            ListHeaderComponent={historySongs.length > 0 ? renderRecentHeader : undefined}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            initialNumToRender={10}
+            windowSize={10}
+            ListEmptyComponent={() => (
+                <View style={themedStyles.emptyState}>
+                    <Text style={themedStyles.emptyText}>No recently viewed songs</Text>
+                    <Text style={themedStyles.emptySubtext}>Songs you view will appear here</Text>
+                </View>
+            )}
+        />
+    ), [historySongs, renderRecentSongsItem, keyExtractor, themedStyles, handleRefresh, refreshing, renderRecentHeader]);
 
     return (
         <View style={themedStyles.container}>
@@ -563,18 +855,22 @@ const SongsList = React.memo(() => {
                     />
                 </View>
             </View>
-            {combinedSongs.length > 0 ? (
-                <FlatList {...flatListProps} />
-            ) : (
-                <View style={themedStyles.emptyState}>
-                    <Text style={themedStyles.emptyText}>
-                        {debouncedSearchQuery ? 'No songs found' : 'No songs available'}
-                    </Text>
-                    <Text style={themedStyles.emptySubtext}>
-                        {loading ? 'Loading...' : debouncedSearchQuery ? 'Try a different search term' : 'Pull to refresh'}
-                    </Text>
+
+            {renderTabBar()}
+
+            <PagerView
+                ref={pagerRef}
+                style={themedStyles.pagerView}
+                initialPage={0}
+                onPageSelected={handlePageSelected}
+            >
+                <View key="all" style={themedStyles.pageContainer}>
+                    <AllSongsRoute />
                 </View>
-            )}
+                <View key="recent" style={themedStyles.pageContainer}>
+                    <RecentSongsRoute />
+                </View>
+            </PagerView>
         </View>
     );
 });
@@ -836,5 +1132,47 @@ const styles = StyleSheet.create({
     },
     historyCard: {
         // subtle elevation difference for recents
+    },
+    pagerView: {
+        flex: 1,
+    },
+    pageContainer: {
+        flex: 1,
+    },
+    customTabBar: {
+        flexDirection: 'row',
+        borderBottomWidth: 1,
+    },
+    tabButton: {
+        flex: 1,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
+        alignItems: 'center',
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
+    },
+    activeTabButton: {
+        borderBottomWidth: 2,
+    },
+    tabButtonText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    activeTabButtonText: {
+        fontWeight: '600',
+    },
+    recentHeader: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        alignItems: 'flex-end',
+    },
+    clearAllButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+    },
+    clearAllButtonText: {
+        fontSize: 12,
+        fontWeight: '600',
     },
 });
