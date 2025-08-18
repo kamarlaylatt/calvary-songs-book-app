@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
         marginTop: 16,
     },
     bottomSpacing: {
-        height: 20,
+        height: 40,
     },
 });
 
