@@ -1,13 +1,14 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, TouchableOpacity, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
 import { Card, Chip, Searchbar, Text, useTheme } from 'react-native-paper';
 import AdvancedSearchFilters from '../../../components/AdvancedSearchFilters';
 import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
 import { clearSongHistory, getSongHistory, initializeDatabase, removeSongFromHistory, SongHistoryItem } from '../../../services/songHistory';
-import { styles } from './songs.styles';
+import { styles } from '../../../styles/songs.styles';
+import { createThemedStyles } from '../../../styles/songs.themedStyles';
 
 import { htmlToPlainText } from '../../../utils/html';
 // Song interface based on required fields
@@ -34,119 +35,7 @@ const SongsList = React.memo(() => {
     const theme = useTheme();
 
     // Create theme-aware styles
-    const themedStyles = StyleSheet.create({
-        ...styles,
-        description: {
-            ...styles.description,
-            color: theme.colors.onSurfaceVariant,
-        },
-        songId: {
-            ...styles.songId,
-            color: theme.colors.onSurfaceVariant,
-            fontSize: 12,
-            opacity: 0.7,
-            marginTop: 2,
-        },
-        songWriter: {
-            ...styles.songWriter,
-            color: theme.colors.onSurfaceVariant,
-        },
-        indicatorText: {
-            ...styles.indicatorText,
-            color: theme.colors.onSurfaceVariant,
-        },
-        indicator: {
-            ...styles.indicator,
-            backgroundColor: theme.colors.surfaceVariant,
-        },
-        emptyText: {
-            ...styles.emptyText,
-            color: theme.colors.onSurfaceVariant,
-        },
-        emptySubtext: {
-            ...styles.emptySubtext,
-            color: theme.colors.onSurfaceVariant,
-        },
-        titleRow: {
-            ...styles.titleRow,
-        },
-        recentBadge: {
-            ...styles.recentBadge,
-            color: theme.colors.primary,
-        },
-        headerActions: {
-            ...styles.headerActions,
-        },
-        deleteButton: {
-            ...styles.deleteButton,
-            backgroundColor: theme.colors.errorContainer,
-        },
-        deleteButtonText: {
-            ...styles.deleteButtonText,
-            color: theme.colors.onErrorContainer,
-        },
-        listHeaderTitle: {
-            ...styles.listHeaderTitle,
-            color: theme.colors.onSurfaceVariant,
-        },
-        clearHistoryButton: {
-            ...styles.clearHistoryButton,
-            backgroundColor: theme.colors.surfaceVariant,
-        },
-        clearHistoryButtonText: {
-            ...styles.clearHistoryButtonText,
-            color: theme.colors.primary,
-        },
-        recentMetaChip: {
-            ...styles.recentMetaChip,
-            backgroundColor: theme.colors.surfaceVariant,
-        },
-        recentMetaChipText: {
-            ...styles.recentMetaChipText,
-            color: theme.colors.onSurfaceVariant,
-        },
-        sectionDivider: {
-            ...styles.sectionDivider,
-            borderBottomColor: theme.colors.surfaceVariant,
-        },
-        pagerView: {
-            ...styles.pagerView,
-        },
-        pageContainer: {
-            ...styles.pageContainer,
-        },
-        customTabBar: {
-            ...styles.customTabBar,
-            backgroundColor: theme.colors.surface,
-            borderBottomColor: theme.colors.outline,
-        },
-        tabButton: {
-            ...styles.tabButton,
-        },
-        activeTabButton: {
-            ...styles.activeTabButton,
-            borderBottomColor: theme.colors.primary,
-        },
-        tabButtonText: {
-            ...styles.tabButtonText,
-            color: theme.colors.onSurfaceVariant,
-        },
-        activeTabButtonText: {
-            ...styles.activeTabButtonText,
-            color: theme.colors.primary,
-        },
-        recentHeader: {
-            ...styles.recentHeader,
-        },
-        clearAllButton: {
-            ...styles.clearAllButton,
-            backgroundColor: theme.colors.errorContainer,
-        },
-        clearAllButtonText: {
-            ...styles.clearAllButtonText,
-            color: theme.colors.onErrorContainer,
-        },
-    });
+    const themedStyles = createThemedStyles(theme);
     const [songs, setSongs] = useState<Song[]>([]);
     const [historySongs, setHistorySongs] = useState<Song[]>([]);
     const [loading, setLoading] = useState(false);
