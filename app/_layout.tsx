@@ -1,8 +1,9 @@
-import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider, useThemeContext } from '@/contexts/ThemeContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Slot } from 'expo-router';
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import React, { useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 
 function AppContent() {
@@ -18,10 +19,12 @@ function AppContent() {
 }
 
 export default function Root() {
-    const queryClient = new QueryClient();
+    // Create a stable QueryClient for the lifetime of the app
+    const [queryClient] = useState(() => new QueryClient());
+
     return (
         <QueryClientProvider client={queryClient}>
-            <GestureHandlerRootView>
+            <GestureHandlerRootView style={{ flex: 1 }}>
                 <ThemeProvider>
                     <AppContent />
                 </ThemeProvider>

@@ -1,11 +1,12 @@
 import { getTheme } from '@/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import type { MD3Theme } from 'react-native-paper';
 
 interface ThemeContextType {
     isDarkMode: boolean;
     toggleTheme: () => void;
-    theme: any;
+    theme: MD3Theme;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);

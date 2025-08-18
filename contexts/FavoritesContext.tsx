@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { isSongInFavorites, addSongToFavorites, removeSongFromFavorites, getFavoriteSongs, initializeFavoritesDatabase } from '../services/favorites';
-import { SongDetail } from '../services/api';
+import { addSongToFavorites, getFavoriteSongs, initializeFavoritesDatabase, isSongInFavorites, removeSongFromFavorites } from '@/services/favorites';
+import { SongDetail } from '@/types/models';
+import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 interface FavoritesContextType {
     favoriteStatus: Record<string, boolean>; // slug -> isFavorite
@@ -39,8 +39,12 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
 
     const refreshFavorites = async () => {
         try {
-            // Get all favorites and update the status map
-            // This is useful when favorites are managed from other screens
+            const items = await getFavoriteSongs();
+            const statusMap = items.reduce<Record<string, boolean>>((acc, item) => {
+                acc[item.slug] = true;
+                return acc;
+            }, {});
+            setFavoriteStatus(statusMap);
         } catch (error) {
             console.error('Error refreshing favorites:', error);
         }
@@ -63,7 +67,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
     const toggleFavorite = async (song: SongDetail) => {
         try {
             const currentStatus = favoriteStatus[song.slug] || false;
-            
+
             if (currentStatus) {
                 // Remove from favorites
                 await removeSongFromFavorites(song.slug);
@@ -80,12 +84,15 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
                     lyrics: song.lyrics
                 });
             }
-            
-            // Update local state
+
+            // Update local state immediately for responsive UI
             setFavoriteStatus(prev => ({
                 ...prev,
                 [song.slug]: !currentStatus
             }));
+
+            // Then refresh from DB to ensure consistency with other screens/actions
+            await refreshFavorites();
         } catch (error) {
             console.error('Error toggling favorite:', error);
         }
