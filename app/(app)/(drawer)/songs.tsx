@@ -409,12 +409,13 @@ const SongsList = React.memo(() => {
         }
     };
 
-    // Refresh history whenever this screen gains focus (e.g., after returning from song detail)
+    // Refresh history only when screen gains focus AND Recent tab is active to avoid resetting scroll position on All Songs
     useFocusEffect(
         useCallback(() => {
-            // No cleanup necessary
-            loadHistory();
-        }, [])
+            if (activeTab === 'recent') {
+                loadHistory();
+            }
+        }, [activeTab])
     );
 
     const handleRefresh = useCallback(async () => {
@@ -499,14 +500,20 @@ const SongsList = React.memo(() => {
         setIndex(tabIndex);
         setActiveTab(tabIndex === 0 ? 'all' : 'recent');
         pagerRef.current?.setPage(tabIndex);
-    }, []);
+        if (tabIndex === 1) {
+            loadHistory();
+        }
+    }, [loadHistory]);
 
     // Handle page change from swipe
     const handlePageSelected = useCallback((event: any) => {
         const newIndex = event.nativeEvent.position;
         setIndex(newIndex);
         setActiveTab(newIndex === 0 ? 'all' : 'recent');
-    }, []);
+        if (newIndex === 1) {
+            loadHistory();
+        }
+    }, [loadHistory]);
 
     // Get the appropriate data based on tab index (more reliable than activeTab)
     const displayedSongs = useMemo(() => {
