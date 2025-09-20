@@ -9,6 +9,7 @@ import {
     Text,
     useTheme,
 } from 'react-native-paper';
+import appConfig from '../app.json';
 
 interface UpdateDialogProps {
     visible: boolean;
@@ -42,6 +43,7 @@ export function UpdateDialog({
         },
         updateButton: {
             backgroundColor: theme.colors.primary,
+            width: 100
         },
         updateButtonText: {
             color: theme.colors.onPrimary,
@@ -56,7 +58,12 @@ export function UpdateDialog({
 
     return (
         <Portal>
-            <Dialog visible={visible} onDismiss={onDismiss} style={styles.dialog}>
+            <Dialog
+                visible={visible}
+                onDismiss={versionData.needs_update ? undefined : onDismiss}
+                style={styles.dialog}
+                dismissable={!versionData.needs_update}
+            >
                 <Dialog.Title style={styles.title}>
                     Update Available
                 </Dialog.Title>
@@ -65,7 +72,7 @@ export function UpdateDialog({
                         {versionData.message}
                     </Text>
                     <Text variant="bodySmall" style={[styles.content, { marginTop: 8 }]}>
-                        Current version: {versionData.current_version_code}
+                        Current version: {appConfig.expo.version} (code: {parseInt(process.env.EXPO_PUBLIC_VERSION_CODE || '1', 10)})
                     </Text>
                     <Text variant="bodySmall" style={styles.content}>
                         Latest version: {versionData.latest_version_name} (code: {versionData.latest_version_code})
@@ -95,7 +102,7 @@ export function UpdateDialog({
                         style={[styles.button, styles.updateButton]}
                         textColor={styles.updateButtonText.color}
                     >
-                        Update Now
+                        Update
                     </Button>
                 </Dialog.Actions>
             </Dialog>

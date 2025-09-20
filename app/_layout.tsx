@@ -28,7 +28,10 @@ function AppContent() {
     };
 
     const handleDismiss = () => {
-        setUpdateDialogVisible(false);
+        // Only allow dismissal if update is not required
+        if (!versionData?.needs_update) {
+            setUpdateDialogVisible(false);
+        }
     };
 
     return (
