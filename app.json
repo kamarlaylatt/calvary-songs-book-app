@@ -4,7 +4,7 @@
     "slug": "calvary",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/calvary-logo.png",
+    "icon": "./assets/images/calvary-logo-square.png",
     "scheme": "calvary",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/calvary-logo.png",
+        "foregroundImage": "./assets/images/calvary-logo-square.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -29,12 +29,15 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/calvary-logo.png",
+          "image": "./assets/images/calvary-logo-square.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-sqlite",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

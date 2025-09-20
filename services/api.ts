@@ -5,6 +5,10 @@ import type {
     Song,
     SongDetail,
 } from '@/types/models';
+import type {
+    VersionCheckRequest,
+    VersionCheckResponse,
+} from '@/types/version';
 import http from './http';
 
 export type {
@@ -12,6 +16,11 @@ export type {
     PaginatedResponse, SearchFilters, Song,
     SongDetail
 } from '@/types/models';
+
+export type {
+    VersionCheckRequest,
+    VersionCheckResponse
+} from '@/types/version';
 
 const mapSong = (song: any): Song => ({
     id: String(song.id),
@@ -117,6 +126,20 @@ export const fetchSearchFilters = async (): Promise<SearchFilters> => {
         };
     } catch (error) {
         console.error('Error fetching search filters:', error);
+        throw error;
+    }
+};
+
+export const checkAppVersion = async (
+    request: VersionCheckRequest
+): Promise<VersionCheckResponse> => {
+    try {
+        console.log('Version check request:', request);
+        const resp = await http.post('/check-version', request);
+        console.log('Version check response:', resp.data);
+        return resp.data;
+    } catch (error) {
+        console.error('Error checking app version:', error);
         throw error;
     }
 };
