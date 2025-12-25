@@ -460,8 +460,13 @@ const SuggestSong = () => {
                 {/* Popular Rating */}
                 <View style={styles.section}>
                     <Text variant="titleMedium" style={styles.sectionTitle}>
-                        Popular Rating (0-5)
+                        Popular Rating (Optional)
                     </Text>
+                    {popularRating !== null && (
+                        <Text variant="bodyMedium" style={{ marginBottom: 8, color: theme.colors.primary }}>
+                            Selected: {popularRating} / 5
+                        </Text>
+                    )}
                     <View style={styles.ratingContainer}>
                         {[0, 1, 2, 3, 4, 5].map((rating) => (
                             <Button
@@ -475,6 +480,16 @@ const SuggestSong = () => {
                             </Button>
                         ))}
                     </View>
+                    {popularRating !== null && (
+                        <Button
+                            mode="text"
+                            onPress={() => setPopularRating(null)}
+                            style={{ marginTop: 8 }}
+                            compact
+                        >
+                            Clear Rating
+                        </Button>
+                    )}
                 </View>
 
                 {/* Submit Button */}
