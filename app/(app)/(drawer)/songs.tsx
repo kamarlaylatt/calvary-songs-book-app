@@ -749,15 +749,16 @@ const SongsList = React.memo(() => {
 
             <FAB
                 icon="plus"
+                color={theme.colors.onSecondary}
                 style={{
                     position: 'absolute',
                     margin: 16,
-                    right: 0,
-                    bottom: 0,
+                    right: 30,
+                    bottom: 40,
                     backgroundColor: theme.colors.primary,
                 }}
                 onPress={() => router.push('/suggest-song')}
-                label="Suggest Song"
+                label=""
             />
         </View>
     );

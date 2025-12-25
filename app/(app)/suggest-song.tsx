@@ -3,7 +3,7 @@ import type { SearchFilters, SuggestSongRequest } from '@/types/models';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Chip, Menu, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Chip, IconButton, Menu, Text, TextInput, useTheme } from 'react-native-paper';
 
 const SuggestSong = () => {
     const router = useRouter();
@@ -464,20 +464,20 @@ const SuggestSong = () => {
                     </Text>
                     {popularRating !== null && (
                         <Text variant="bodyMedium" style={{ marginBottom: 8, color: theme.colors.primary }}>
-                            Selected: {popularRating} / 5
+                            Selected: {popularRating} / 4
                         </Text>
                     )}
                     <View style={styles.ratingContainer}>
-                        {[0, 1, 2, 3, 4, 5].map((rating) => (
-                            <Button
-                                key={rating}
-                                mode={popularRating === rating ? 'contained' : 'outlined'}
-                                onPress={() => setPopularRating(rating)}
+                        {[1, 2, 3, 4].map((star) => (
+                            <IconButton
+                                key={star}
+                                icon={popularRating !== null && star <= popularRating ? 'star' : 'star-outline'}
+                                selected={popularRating !== null && star <= popularRating}
+                                onPress={() => setPopularRating(popularRating === star ? null : star)}
                                 style={styles.ratingButton}
-                                compact
-                            >
-                                {rating}
-                            </Button>
+                                size={24}
+                                accessibilityLabel={`Set rating to ${star} ${star === 1 ? 'star' : 'stars'}`}
+                            />
                         ))}
                     </View>
                     {popularRating !== null && (
@@ -485,7 +485,6 @@ const SuggestSong = () => {
                             mode="text"
                             onPress={() => setPopularRating(null)}
                             style={{ marginTop: 8 }}
-                            compact
                         >
                             Clear Rating
                         </Button>
