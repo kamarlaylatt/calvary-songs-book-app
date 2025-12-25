@@ -22,9 +22,9 @@ const SuggestSong = () => {
 
     // Filter state
     const [filters, setFilters] = useState<SearchFilters | null>(null);
-    const [selectedStyleId, setSelectedStyleId] = useState<number | undefined>();
-    const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>([]);
-    const [selectedLanguageIds, setSelectedLanguageIds] = useState<number[]>([]);
+    const [selectedStyleId, setSelectedStyleId] = useState<string | undefined>();
+    const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[]>([]);
+    const [selectedLanguageIds, setSelectedLanguageIds] = useState<string[]>([]);
 
     // UI state
     const [loading, setLoading] = useState(false);
@@ -83,13 +83,13 @@ const SuggestSong = () => {
             if (youtube.trim()) request.youtube = youtube.trim();
             if (description.trim()) request.description = description.trim();
             if (songWriter.trim()) request.song_writer = songWriter.trim();
-            if (selectedStyleId) request.style_id = selectedStyleId;
+            if (selectedStyleId) request.style_id = Number(selectedStyleId);
             if (musicalKey.trim()) request.key = musicalKey.trim();
             if (musicNotes.trim()) request.music_notes = musicNotes.trim();
             if (popularRating !== null) request.popular_rating = popularRating;
             if (email.trim()) request.email = email.trim();
-            if (selectedCategoryIds.length > 0) request.category_ids = selectedCategoryIds;
-            if (selectedLanguageIds.length > 0) request.song_language_ids = selectedLanguageIds;
+            if (selectedCategoryIds.length > 0) request.category_ids = selectedCategoryIds.map(Number);
+            if (selectedLanguageIds.length > 0) request.song_language_ids = selectedLanguageIds.map(Number);
 
             const response = await submitSongSuggestion(request);
 
@@ -125,7 +125,7 @@ const SuggestSong = () => {
         }
     };
 
-    const toggleCategory = (categoryId: number) => {
+    const toggleCategory = (categoryId: string) => {
         setSelectedCategoryIds((prev) =>
             prev.includes(categoryId)
                 ? prev.filter((id) => id !== categoryId)
@@ -133,7 +133,7 @@ const SuggestSong = () => {
         );
     };
 
-    const toggleLanguage = (languageId: number) => {
+    const toggleLanguage = (languageId: string) => {
         setSelectedLanguageIds((prev) =>
             prev.includes(languageId)
                 ? prev.filter((id) => id !== languageId)
@@ -203,17 +203,17 @@ const SuggestSong = () => {
     });
 
     const selectedStyle = useMemo(
-        () => filters?.styles.find((s) => Number(s.id) === selectedStyleId),
+        () => filters?.styles.find((s) => s.id === selectedStyleId),
         [filters?.styles, selectedStyleId]
     );
 
     const selectedCategories = useMemo(
-        () => filters?.categories.filter((c) => selectedCategoryIds.includes(Number(c.id))),
+        () => filters?.categories.filter((c) => selectedCategoryIds.includes(c.id)),
         [filters?.categories, selectedCategoryIds]
     );
 
     const selectedLanguages = useMemo(
-        () => filters?.song_languages.filter((l) => selectedLanguageIds.includes(Number(l.id))),
+        () => filters?.song_languages.filter((l) => selectedLanguageIds.includes(l.id)),
         [filters?.song_languages, selectedLanguageIds]
     );
 
@@ -357,11 +357,11 @@ const SuggestSong = () => {
                             <Menu.Item
                                 key={style.id}
                                 onPress={() => {
-                                    setSelectedStyleId(Number(style.id));
+                                    setSelectedStyleId(style.id);
                                     setStyleMenuVisible(false);
                                 }}
                                 title={style.name}
-                                leadingIcon={selectedStyleId === Number(style.id) ? 'check' : undefined}
+                                leadingIcon={selectedStyleId === style.id ? 'check' : undefined}
                             />
                         ))}
                     </Menu>
@@ -389,10 +389,10 @@ const SuggestSong = () => {
                         {filters?.categories.map((category) => (
                             <Menu.Item
                                 key={category.id}
-                                onPress={() => toggleCategory(Number(category.id))}
+                                onPress={() => toggleCategory(category.id)}
                                 title={category.name}
                                 leadingIcon={
-                                    selectedCategoryIds.includes(Number(category.id)) ? 'check' : undefined
+                                    selectedCategoryIds.includes(category.id) ? 'check' : undefined
                                 }
                             />
                         ))}
@@ -403,7 +403,7 @@ const SuggestSong = () => {
                                 <Chip
                                     key={category.id}
                                     style={styles.chip}
-                                    onClose={() => toggleCategory(Number(category.id))}
+                                    onClose={() => toggleCategory(category.id)}
                                 >
                                     {category.name}
                                 </Chip>
@@ -434,10 +434,10 @@ const SuggestSong = () => {
                         {filters?.song_languages.map((language) => (
                             <Menu.Item
                                 key={language.id}
-                                onPress={() => toggleLanguage(Number(language.id))}
+                                onPress={() => toggleLanguage(language.id)}
                                 title={language.name}
                                 leadingIcon={
-                                    selectedLanguageIds.includes(Number(language.id)) ? 'check' : undefined
+                                    selectedLanguageIds.includes(language.id) ? 'check' : undefined
                                 }
                             />
                         ))}
@@ -448,7 +448,7 @@ const SuggestSong = () => {
                                 <Chip
                                     key={language.id}
                                     style={styles.chip}
-                                    onClose={() => toggleLanguage(Number(language.id))}
+                                    onClose={() => toggleLanguage(language.id)}
                                 >
                                     {language.name}
                                 </Chip>
