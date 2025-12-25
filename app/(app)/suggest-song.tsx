@@ -68,7 +68,25 @@ const SuggestSong = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async () => {
+    const buildRequest = (): SuggestSongRequest => {
+        const req: SuggestSongRequest = {
+            title: title.trim(),
+            lyrics: lyrics.trim(),
+        };
+        if (youtube.trim()) req.youtube = youtube.trim();
+        if (description.trim()) req.description = description.trim();
+        if (songWriter.trim()) req.song_writer = songWriter.trim();
+        if (selectedStyleId) req.style_id = Number(selectedStyleId);
+        if (musicalKey.trim()) req.key = musicalKey.trim();
+        if (musicNotes.trim()) req.music_notes = musicNotes.trim();
+        if (popularRating !== null) req.popular_rating = popularRating;
+        if (email.trim()) req.email = email.trim();
+        if (selectedCategoryIds.length > 0) req.category_ids = selectedCategoryIds.map(Number);
+        if (selectedLanguageIds.length > 0) req.song_language_ids = selectedLanguageIds.map(Number);
+        return req;
+    };
+
+    const handleSubmit = async (requestArg?: SuggestSongRequest) => {
         if (!validateForm()) {
             return;
         }
@@ -76,27 +94,11 @@ const SuggestSong = () => {
         setLoading(true);
         setErrors({});
 
+        const request = requestArg ?? buildRequest();
+
         try {
-            const request: SuggestSongRequest = {
-                title: title.trim(),
-                lyrics: lyrics.trim(),
-            };
-
-            // Add optional fields if provided
-            if (youtube.trim()) request.youtube = youtube.trim();
-            if (description.trim()) request.description = description.trim();
-            if (songWriter.trim()) request.song_writer = songWriter.trim();
-            if (selectedStyleId) request.style_id = Number(selectedStyleId);
-            if (musicalKey.trim()) request.key = musicalKey.trim();
-            if (musicNotes.trim()) request.music_notes = musicNotes.trim();
-            if (popularRating !== null) request.popular_rating = popularRating;
-            if (email.trim()) request.email = email.trim();
-            if (selectedCategoryIds.length > 0) request.category_ids = selectedCategoryIds.map(Number);
-            if (selectedLanguageIds.length > 0) request.song_language_ids = selectedLanguageIds.map(Number);
-
             const response = await submitSongSuggestion(request);
 
-            // Show success message
             Alert.alert(
                 'Success',
                 response.message || 'Your song suggestion has been submitted successfully! It will be reviewed by an admin.',
@@ -109,16 +111,12 @@ const SuggestSong = () => {
             );
         } catch (error: any) {
             console.error('Error submitting song suggestion:', error);
-
-            // Handle validation errors from API
             if (error.response?.status === 422 && error.response?.data?.errors) {
                 const apiErrors: { [key: string]: string } = {};
                 const errorData = error.response.data.errors;
-
                 Object.keys(errorData).forEach((key) => {
-                    apiErrors[key] = errorData[key][0]; // Get first error message
+                    apiErrors[key] = errorData[key][0];
                 });
-
                 setErrors(apiErrors);
             } else {
                 Alert.alert('Error', 'Failed to submit song suggestion. Please try again.');
@@ -126,6 +124,45 @@ const SuggestSong = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const handlePreview = () => {
+        if (!validateForm()) {
+            return;
+        }
+
+        // Build route params
+        const params: any = {
+            title: title.trim(),
+            lyrics: lyrics.trim(),
+        };
+
+        if (youtube.trim()) params.youtube = youtube.trim();
+        if (description.trim()) params.description = description.trim();
+        if (songWriter.trim()) params.songWriter = songWriter.trim();
+        if (musicalKey.trim()) params.musicalKey = musicalKey.trim();
+        if (musicNotes.trim()) params.musicNotes = musicNotes.trim();
+        if (email.trim()) params.email = email.trim();
+        if (selectedStyleId) {
+            params.styleId = selectedStyleId;
+            params.styleName = selectedStyle?.name || '';
+        }
+        if (popularRating !== null) {
+            params.popularRating = String(popularRating);
+        }
+        if (selectedCategoryIds.length > 0) {
+            params.categoryIds = selectedCategoryIds.join(',');
+            params.categoryNames = selectedCategories?.map((c) => c.name).join(',') || '';
+        }
+        if (selectedLanguageIds.length > 0) {
+            params.languageIds = selectedLanguageIds.join(',');
+            params.languageNames = selectedLanguages?.map((l) => l.name).join(',') || '';
+        }
+
+        router.push({
+            pathname: '/(app)/suggest-song-preview',
+            params,
+        });
     };
 
     const toggleCategory = (categoryId: string) => {
@@ -525,16 +562,16 @@ const SuggestSong = () => {
                     )}
                 </View>
 
-                {/* Submit Button */}
+                {/* Preview Button */}
                 <Button
                     mode="contained"
-                    onPress={handleSubmit}
+                    onPress={handlePreview}
                     loading={loading}
                     disabled={loading}
                     style={styles.submitButton}
-                    icon="send"
+                    icon="eye"
                 >
-                    Submit Suggestion
+                    Preview
                 </Button>
             </ScrollView>
         </KeyboardAvoidingView>
