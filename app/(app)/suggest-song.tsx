@@ -1,9 +1,11 @@
 import { fetchSearchFilters, submitSongSuggestion } from '@/services/api';
 import type { SearchFilters, SuggestSongRequest } from '@/types/models';
+import { htmlToPlainText } from '@/utils/html';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Chip, IconButton, Menu, Text, TextInput, useTheme } from 'react-native-paper';
+import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor';
 
 const SuggestSong = () => {
     const router = useRouter();
@@ -12,6 +14,7 @@ const SuggestSong = () => {
     // Form state
     const [title, setTitle] = useState('');
     const [lyrics, setLyrics] = useState('');
+    const richEditorRef = React.useRef<RichEditor>(null);
     const [youtube, setYoutube] = useState('');
     const [description, setDescription] = useState('');
     const [songWriter, setSongWriter] = useState('');
@@ -53,7 +56,7 @@ const SuggestSong = () => {
             newErrors.title = 'Title is required';
         }
 
-        if (!lyrics.trim()) {
+        if (!htmlToPlainText(lyrics).trim()) {
             newErrors.lyrics = 'Lyrics are required';
         }
 
@@ -164,7 +167,15 @@ const SuggestSong = () => {
         lyricsInput: {
             marginBottom: 8,
             backgroundColor: theme.colors.surface,
-            minHeight: 120,
+            minHeight: 160,
+            borderRadius: 4,
+            overflow: 'hidden',
+        },
+        toolbar: {
+            borderTopWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.colors.outlineVariant,
+            backgroundColor: theme.colors.surface,
+            marginBottom: 8,
         },
         error: {
             color: theme.colors.error,
@@ -248,15 +259,38 @@ const SuggestSong = () => {
                     />
                     {errors.title && <Text style={styles.error}>{errors.title}</Text>}
 
-                    <TextInput
-                        label="Lyrics *"
-                        value={lyrics}
-                        onChangeText={setLyrics}
-                        mode="outlined"
-                        multiline
-                        numberOfLines={6}
-                        style={styles.lyricsInput}
-                        error={!!errors.lyrics}
+                    <View style={styles.lyricsInput}>
+                        <RichEditor
+                            ref={richEditorRef}
+                            initialContentHTML={lyrics}
+                            onChange={setLyrics}
+                            placeholder="Type lyrics here..."
+                            editorStyle={{
+                                backgroundColor: theme.colors.surface,
+                                color: theme.colors.onSurface,
+                                caretColor: theme.colors.primary,
+                                placeholderColor: theme.colors.onSurfaceVariant,
+                            }}
+                            style={{ minHeight: 160 }}
+                        />
+                    </View>
+                    <RichToolbar
+                        editor={richEditorRef}
+                        actions={[
+                            actions.undo,
+                            actions.redo,
+                            actions.setBold,
+                            actions.setItalic,
+                            actions.setUnderline,
+                            actions.heading1,
+                            actions.insertBulletsList,
+                            actions.insertOrderedList,
+                            actions.blockquote,
+                            actions.line,
+                        ]}
+                        selectedIconTint={theme.colors.primary}
+                        iconTint={theme.colors.onSurfaceVariant}
+                        style={styles.toolbar}
                     />
                     {errors.lyrics && <Text style={styles.error}>{errors.lyrics}</Text>}
                 </View>
@@ -303,7 +337,7 @@ const SuggestSong = () => {
                         style={styles.input}
                     />
 
-                    <TextInput
+                    {/* <TextInput
                         label="Music Notes"
                         value={musicNotes}
                         onChangeText={setMusicNotes}
@@ -311,7 +345,7 @@ const SuggestSong = () => {
                         multiline
                         numberOfLines={3}
                         style={styles.input}
-                    />
+                    /> */}
 
                     <TextInput
                         label="Your Email (for approval notifications)"
