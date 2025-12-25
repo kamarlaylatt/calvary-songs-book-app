@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, TouchableOpacity, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
-import { Card, Chip, Searchbar, Text, useTheme } from 'react-native-paper';
+import { Card, Chip, FAB, Searchbar, Text, useTheme } from 'react-native-paper';
 import AdvancedSearchFilters from '../../../components/AdvancedSearchFilters';
 import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
 import { clearSongHistory, getSongHistory, initializeDatabase, removeSongFromHistory, SongHistoryItem } from '../../../services/songHistory';
@@ -746,6 +746,19 @@ const SongsList = React.memo(() => {
                     <RecentSongsRoute />
                 </View>
             </PagerView>
+
+            <FAB
+                icon="plus"
+                style={{
+                    position: 'absolute',
+                    margin: 16,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: theme.colors.primary,
+                }}
+                onPress={() => router.push('/suggest-song')}
+                label="Suggest Song"
+            />
         </View>
     );
 });

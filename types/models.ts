@@ -74,3 +74,53 @@ export interface SearchFilters {
 export interface ListResponse<T> {
     data: T[];
 }
+
+// Suggest Song types
+export interface SuggestSongRequest {
+    title: string;
+    lyrics: string;
+    youtube?: string;
+    description?: string;
+    song_writer?: string;
+    style_id?: number;
+    key?: string;
+    music_notes?: string;
+    popular_rating?: number;
+    email?: string;
+    category_ids?: number[];
+    song_language_ids?: number[];
+}
+
+export interface SuggestSongResponse {
+    message: string;
+    data: {
+        id: number;
+        title: string;
+        youtube?: string;
+        description?: string;
+        song_writer?: string;
+        style_id?: number;
+        key?: string;
+        lyrics: string;
+        music_notes?: string;
+        popular_rating?: number;
+        status: number;
+        categories?: Array<{
+            id: number;
+            name: string;
+            pivot: {
+                suggest_song_id: number;
+                category_id: number;
+            };
+        }>;
+        created_at: string;
+        updated_at: string;
+    };
+}
+
+export interface ValidationError {
+    message: string;
+    errors: {
+        [field: string]: string[];
+    };
+}

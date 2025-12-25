@@ -4,6 +4,8 @@ import type {
     SearchFilters,
     Song,
     SongDetail,
+    SuggestSongRequest,
+    SuggestSongResponse,
 } from '@/types/models';
 import type {
     VersionCheckRequest,
@@ -14,7 +16,9 @@ import http from './http';
 export type {
     FetchSongsParams,
     PaginatedResponse, SearchFilters, Song,
-    SongDetail
+    SongDetail,
+    SuggestSongRequest,
+    SuggestSongResponse,
 } from '@/types/models';
 
 export type {
@@ -140,6 +144,18 @@ export const checkAppVersion = async (
         return resp.data;
     } catch (error) {
         console.error('Error checking app version:', error);
+        throw error;
+    }
+};
+
+export const submitSongSuggestion = async (
+    request: SuggestSongRequest
+): Promise<SuggestSongResponse> => {
+    try {
+        const resp = await http.post('/suggest-songs', request);
+        return resp.data;
+    } catch (error) {
+        console.error('Error submitting song suggestion:', error);
         throw error;
     }
 };
