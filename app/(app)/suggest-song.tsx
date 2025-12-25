@@ -1,7 +1,7 @@
 import { fetchSearchFilters, submitSongSuggestion } from '@/services/api';
 import type { SearchFilters, SuggestSongRequest } from '@/types/models';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Chip, Menu, Text, TextInput, useTheme } from 'react-native-paper';
 
@@ -18,7 +18,7 @@ const SuggestSong = () => {
     const [musicalKey, setMusicalKey] = useState('');
     const [musicNotes, setMusicNotes] = useState('');
     const [email, setEmail] = useState('');
-    const [popularRating, setPopularRating] = useState<number>(0);
+    const [popularRating, setPopularRating] = useState<number | null>(null);
 
     // Filter state
     const [filters, setFilters] = useState<SearchFilters | null>(null);
@@ -86,7 +86,7 @@ const SuggestSong = () => {
             if (selectedStyleId) request.style_id = selectedStyleId;
             if (musicalKey.trim()) request.key = musicalKey.trim();
             if (musicNotes.trim()) request.music_notes = musicNotes.trim();
-            if (popularRating > 0) request.popular_rating = popularRating;
+            if (popularRating !== null) request.popular_rating = popularRating;
             if (email.trim()) request.email = email.trim();
             if (selectedCategoryIds.length > 0) request.category_ids = selectedCategoryIds;
             if (selectedLanguageIds.length > 0) request.song_language_ids = selectedLanguageIds;
@@ -202,12 +202,19 @@ const SuggestSong = () => {
         },
     });
 
-    const selectedStyle = filters?.styles.find((s) => Number(s.id) === selectedStyleId);
-    const selectedCategories = filters?.categories.filter((c) =>
-        selectedCategoryIds.includes(Number(c.id))
+    const selectedStyle = useMemo(
+        () => filters?.styles.find((s) => Number(s.id) === selectedStyleId),
+        [filters?.styles, selectedStyleId]
     );
-    const selectedLanguages = filters?.song_languages.filter((l) =>
-        selectedLanguageIds.includes(Number(l.id))
+
+    const selectedCategories = useMemo(
+        () => filters?.categories.filter((c) => selectedCategoryIds.includes(Number(c.id))),
+        [filters?.categories, selectedCategoryIds]
+    );
+
+    const selectedLanguages = useMemo(
+        () => filters?.song_languages.filter((l) => selectedLanguageIds.includes(Number(l.id))),
+        [filters?.song_languages, selectedLanguageIds]
     );
 
     return (
