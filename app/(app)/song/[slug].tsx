@@ -68,6 +68,75 @@ function SongDetailScreen() {
         },
     });
 
+    // Memoized HTML rendering configs placed before any conditional returns to keep hooks order stable
+    const tagsStyles = useMemo(() => ({
+        body: {
+            whiteSpace: 'normal' as const,
+            color: theme.colors.onSurfaceVariant,
+            fontSize: 16,
+            lineHeight: 24,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+        },
+        p: {
+            marginBottom: 16,
+            textAlign: 'left' as const,
+        },
+        br: {
+            marginBottom: 8,
+        },
+        div: {
+            marginBottom: 12,
+        },
+        span: {
+            color: theme.colors.onSurfaceVariant,
+        },
+        strong: {
+            fontWeight: 'bold' as const,
+            color: theme.colors.onSurface,
+        },
+        em: {
+            fontStyle: 'italic' as const,
+        },
+        h1: {
+            fontSize: 20,
+            fontWeight: 'bold' as const,
+            marginBottom: 12,
+            color: theme.colors.onSurface,
+        },
+        h2: {
+            fontSize: 18,
+            fontWeight: 'bold' as const,
+            marginBottom: 10,
+            color: theme.colors.onSurface,
+        },
+        h3: {
+            fontSize: 16,
+            fontWeight: 'bold' as const,
+            marginBottom: 8,
+            color: theme.colors.onSurface,
+        },
+    }), [theme.colors]);
+
+    const systemFonts = useMemo(() => [
+        '-apple-system',
+        'BlinkMacSystemFont',
+        'Segoe UI',
+        'Roboto',
+        'Oxygen',
+        'Ubuntu',
+        'Cantarell',
+        'Fira Sans',
+        'Droid Sans',
+        'Helvetica Neue',
+        'sans-serif'
+    ], []);
+
+    const renderersProps = useMemo(() => ({
+        img: {
+            enableExperimentalPercentWidth: true,
+        },
+    }), []);
+
     const loadSong = async (isRefresh = false) => {
         if (!slug) return; // Early return if slug is null
         
@@ -220,74 +289,7 @@ function SongDetailScreen() {
         );
     }
 
-    // RenderHtml styles configuration using theme colors
-    const tagsStyles = useMemo(() => ({
-        body: {
-            whiteSpace: 'normal' as const,
-            color: theme.colors.onSurfaceVariant,
-            fontSize: 16,
-            lineHeight: 24,
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
-        },
-        p: {
-            marginBottom: 16,
-            textAlign: 'left' as const,
-        },
-        br: {
-            marginBottom: 8,
-        },
-        div: {
-            marginBottom: 12,
-        },
-        span: {
-            color: theme.colors.onSurfaceVariant,
-        },
-        strong: {
-            fontWeight: 'bold' as const,
-            color: theme.colors.onSurface,
-        },
-        em: {
-            fontStyle: 'italic' as const,
-        },
-        h1: {
-            fontSize: 20,
-            fontWeight: 'bold' as const,
-            marginBottom: 12,
-            color: theme.colors.onSurface,
-        },
-        h2: {
-            fontSize: 18,
-            fontWeight: 'bold' as const,
-            marginBottom: 10,
-            color: theme.colors.onSurface,
-        },
-        h3: {
-            fontSize: 16,
-            fontWeight: 'bold' as const,
-            marginBottom: 8,
-            color: theme.colors.onSurface,
-        },
-    }), [theme.colors]);
-
-    const systemFonts = useMemo(() => [
-        '-apple-system',
-        'BlinkMacSystemFont',
-        'Segoe UI',
-        'Roboto',
-        'Oxygen',
-        'Ubuntu',
-        'Cantarell',
-        'Fira Sans',
-        'Droid Sans',
-        'Helvetica Neue',
-        'sans-serif'
-    ], []);
-
-    const renderersProps = useMemo(() => ({
-        img: {
-            enableExperimentalPercentWidth: true,
-        },
-    }), []);
+    // (moved: tagsStyles, systemFonts, renderersProps useMemo hooks declared above)
 
     return (
         <ScrollView
