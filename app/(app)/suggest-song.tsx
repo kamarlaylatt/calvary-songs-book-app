@@ -10,6 +10,7 @@ import { RichEditor, RichToolbar, actions } from 'react-native-pell-rich-editor'
 const SuggestSong = () => {
     const router = useRouter();
     const theme = useTheme();
+    const scrollRef = React.useRef<ScrollView | null>(null);
 
     // Form state
     const [title, setTitle] = useState('');
@@ -35,6 +36,10 @@ const SuggestSong = () => {
     const [styleMenuVisible, setStyleMenuVisible] = useState(false);
     const [categoryMenuVisible, setCategoryMenuVisible] = useState(false);
     const [languageMenuVisible, setLanguageMenuVisible] = useState(false);
+
+    const scrollToTop = () => {
+        scrollRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+    };
 
     useEffect(() => {
         loadFilters();
@@ -65,7 +70,12 @@ const SuggestSong = () => {
         }
 
         setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        const isValid = Object.keys(newErrors).length === 0;
+        if (!isValid) {
+            // Ensure user sees errors immediately
+            scrollToTop();
+        }
+        return isValid;
     };
 
     const buildRequest = (): SuggestSongRequest => {
@@ -118,6 +128,8 @@ const SuggestSong = () => {
                     apiErrors[key] = errorData[key][0];
                 });
                 setErrors(apiErrors);
+                // Scroll to top so the user can see validation messages
+                scrollToTop();
             } else {
                 Alert.alert('Error', 'Failed to submit song suggestion. Please try again.');
             }
@@ -270,7 +282,7 @@ const SuggestSong = () => {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
         >
-            <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+            <ScrollView ref={scrollRef} style={styles.container} contentContainerStyle={styles.scrollContent}>
                 <Text variant="headlineSmall" style={{ marginBottom: 16 }}>
                     Suggest a Song
                 </Text>
