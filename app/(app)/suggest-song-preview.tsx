@@ -1,7 +1,7 @@
 import { submitSongSuggestion } from '@/services/api';
 import type { SuggestSongRequest } from '@/types/models';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Button, Card, Chip, Text, useTheme } from 'react-native-paper';
 import RenderHTML from 'react-native-render-html';
@@ -24,6 +24,16 @@ interface PreviewParams {
     languageNames?: string;
 }
 
+const flattenParagraphsToLineBreaks = (html: string): string => {
+    // Convert block-level paragraph tags into single line breaks so Enter behaves like <br />
+    let normalized = html || '';
+    normalized = normalized.replace(/<\/p>\s*<p>/gi, '<br/>');
+    normalized = normalized.replace(/<\/(p|div|section|article|h[1-6]|li)>/gi, '<br/>');
+    normalized = normalized.replace(/<(p|div|section|article|h[1-6]|li)[^>]*>/gi, '');
+    normalized = normalized.replace(/(<br\s*\/?>(\s|&nbsp;)*){2,}/gi, '<br/>');
+    return normalized.trim();
+};
+
 const SuggestSongPreview = () => {
     const router = useRouter();
     const theme = useTheme();
@@ -31,10 +41,15 @@ const SuggestSongPreview = () => {
     const params = useLocalSearchParams();
     const [loading, setLoading] = useState(false);
 
+    const normalizedLyrics = useMemo(
+        () => flattenParagraphsToLineBreaks(String(params.lyrics || '')),
+        [params.lyrics]
+    );
+
     const buildRequest = (): SuggestSongRequest => {
         const request: SuggestSongRequest = {
             title: String(params.title || ''),
-            lyrics: String(params.lyrics || ''),
+            lyrics: normalizedLyrics,
         };
 
         if (params.youtube) request.youtube = String(params.youtube);
@@ -181,7 +196,7 @@ const SuggestSongPreview = () => {
                     </Text>
                     <View style={styles.lyricsContainer}>
                         <RenderHTML
-                            source={{ html: String(params.lyrics || '') }}
+                            source={{ html: normalizedLyrics }}
                             contentWidth={width - 80}
                             baseStyle={{
                                 fontSize: 16,
