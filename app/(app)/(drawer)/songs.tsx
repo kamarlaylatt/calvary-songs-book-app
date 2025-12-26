@@ -351,7 +351,10 @@ const SongsList = React.memo(() => {
                 <Card
                     style={[themedStyles.card, (isFromHistory ? styles.historyCard : null)]}
                     accessibilityLabel={isFromHistory ? 'Recently viewed song' : 'Song'}
-                    onPress={() => router.push(`/song/${item.slug}`)}
+                    onPress={() => router.push({
+                        pathname: '/song/[slug]',
+                        params: { slug: item.slug, song: JSON.stringify(item) }
+                    })}
                 >
                     <Card.Content style={themedStyles.cardContent}>
                         {/* Header with title, style, and delete button for history items */}
@@ -488,7 +491,10 @@ const SongsList = React.memo(() => {
             <Card
                 style={themedStyles.card}
                 accessibilityLabel="Song"
-                onPress={() => router.push(`/song/${item.slug}`)}
+                onPress={() => router.push({
+                    pathname: '/song/[slug]',
+                    params: { slug: item.slug, song: JSON.stringify(item) }
+                })}
             >
                 <Card.Content style={themedStyles.cardContent}>
                     <View style={themedStyles.songHeader}>
@@ -568,7 +574,10 @@ const SongsList = React.memo(() => {
             <Card
                 style={[themedStyles.card, styles.historyCard]}
                 accessibilityLabel="Recently viewed song"
-                onPress={() => router.push(`/song/${item.slug}`)}
+                onPress={() => router.push({
+                    pathname: '/song/[slug]',
+                    params: { slug: item.slug, song: JSON.stringify(item) }
+                })}
             >
                 <Card.Content style={themedStyles.cardContent}>
                     <View style={themedStyles.songHeader}>

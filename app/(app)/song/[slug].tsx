@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Linking, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Button, Card, Chip, Divider, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import RenderHtml from 'react-native-render-html';
@@ -10,12 +10,13 @@ import { useFavorites } from '../../../contexts/FavoritesContext';
 
 function SongDetailScreen() {
     const { favoriteStatus, toggleFavorite, checkFavoriteStatus } = useFavorites();
-    const params = useLocalSearchParams<{ slug: string }>();
+    const params = useLocalSearchParams<{ slug: string; song?: string }>();
     const slug = typeof params.slug === 'string' ? params.slug : null;
+    const passedSong = params.song ? JSON.parse(params.song) : null;
     const theme = useTheme();
     const { width } = useWindowDimensions();
-    const [song, setSong] = useState<SongDetail | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [song, setSong] = useState<SongDetail | null>(passedSong);
+    const [loading, setLoading] = useState(!passedSong);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +70,15 @@ function SongDetailScreen() {
 
     const loadSong = async (isRefresh = false) => {
         if (!slug) return; // Early return if slug is null
+        
+        // If we have passed song data and it's not a refresh, use it directly
+        if (passedSong && !isRefresh) {
+            setSong(passedSong);
+            await checkFavoriteStatus(passedSong.slug);
+            setLoading(false);
+            return;
+        }
+        
         try {
             if (isRefresh) {
                 setRefreshing(true);
@@ -160,16 +170,26 @@ function SongDetailScreen() {
         const initAndLoadSong = async () => {
             try {
                 await initializeDatabase();
-                await loadSong();
+                // Only fetch from API if we don't have passed data
+                if (!passedSong) {
+                    await loadSong();
+                } else {
+                    await checkFavoriteStatus(passedSong.slug);
+                    setLoading(false);
+                }
             } catch (error) {
                 console.error('Failed to initialize database:', error);
                 // Still load the song even if database initialization fails
-                await loadSong();
+                if (!passedSong) {
+                    await loadSong();
+                } else {
+                    setLoading(false);
+                }
             }
         };
 
         initAndLoadSong();
-    }, [slug]);
+    }, [slug, passedSong]);
 
     if (loading) {
         return (
@@ -201,7 +221,7 @@ function SongDetailScreen() {
     }
 
     // RenderHtml styles configuration using theme colors
-    const tagsStyles = {
+    const tagsStyles = useMemo(() => ({
         body: {
             whiteSpace: 'normal' as const,
             color: theme.colors.onSurfaceVariant,
@@ -247,9 +267,9 @@ function SongDetailScreen() {
             marginBottom: 8,
             color: theme.colors.onSurface,
         },
-    };
+    }), [theme.colors]);
 
-    const systemFonts = [
+    const systemFonts = useMemo(() => [
         '-apple-system',
         'BlinkMacSystemFont',
         'Segoe UI',
@@ -261,7 +281,13 @@ function SongDetailScreen() {
         'Droid Sans',
         'Helvetica Neue',
         'sans-serif'
-    ];
+    ], []);
+
+    const renderersProps = useMemo(() => ({
+        img: {
+            enableExperimentalPercentWidth: true,
+        },
+    }), []);
 
     return (
         <ScrollView
@@ -432,11 +458,7 @@ function SongDetailScreen() {
                             tagsStyles={tagsStyles}
                             systemFonts={systemFonts}
                             enableExperimentalMarginCollapsing={true}
-                            renderersProps={{
-                                img: {
-                                    enableExperimentalPercentWidth: true,
-                                },
-                            }}
+                            renderersProps={renderersProps}
                         />
                         {/* </Surface> */}
                     </Card.Content>
