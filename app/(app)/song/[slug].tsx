@@ -4,9 +4,9 @@ import { ActivityIndicator, Linking, RefreshControl, ScrollView, StyleSheet, Vie
 import { Button, Card, Chip, Divider, IconButton, Surface, Text, useTheme } from 'react-native-paper';
 import RenderHtml from 'react-native-render-html';
 import YoutubePlayer from 'react-native-youtube-iframe';
-import { SongDetail, fetchSongBySlug } from '../../../services/api';
-import { addSongToHistory, initializeDatabase } from '../../../services/songHistory';
 import { useFavorites } from '../../../contexts/FavoritesContext';
+import { SongDetail, fetchSongBySlug } from '../../../services/api';
+import { initializeDatabase } from '../../../services/songHistory';
 
 function SongDetailScreen() {
     const { favoriteStatus, toggleFavorite, checkFavoriteStatus } = useFavorites();
@@ -163,24 +163,8 @@ function SongDetailScreen() {
                 await checkFavoriteStatus(songData.slug);
             }
 
-            // Add song to history when successfully loaded (only on initial load, not refresh)
-            if (!isRefresh && songData) {
-                try {
-                    await addSongToHistory({
-                        id: songData.id,
-                        slug: songData.slug,
-                        title: songData.title,
-                        song_writer: songData.song_writer,
-                        style: songData.style,
-                        description: songData.description,
-                        categories: songData.categories,
-                        lyrics: songData.lyrics
-                    });
-                } catch (historyError) {
-                    console.error('Failed to add song to history:', historyError);
-                    // Don't throw error here as it shouldn't prevent song display
-                }
-            }
+            // Note: History is now tracked before navigation in the calling screen
+            // This avoids duplicate history tracking when coming from song list or favorites
         } catch (error: any) {
             console.error('Failed to load song:', error);
             setError(error.message || 'Failed to load song details');

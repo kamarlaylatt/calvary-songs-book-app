@@ -1,4 +1,5 @@
 import { FavoriteSong, getFavoriteSongs, removeSongFromFavorites } from '@/services/favorites';
+import { addSongToHistory } from '@/services/songHistory';
 import { router, useFocusEffect } from 'expo-router';
 import React, { useState } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
@@ -46,10 +47,36 @@ export default function FavoritesScreen() {
         }, [])
     );
 
+    const handleFavoritePress = async (song: FavoriteSong) => {
+        try {
+            // Convert FavoriteSong to format expected by addSongToHistory
+            await addSongToHistory({
+                id: song.id,
+                slug: song.slug,
+                title: song.title,
+                song_writer: song.song_writer,
+                categories: [], // Favorites don't store categories, but history requires it
+            });
+            // Don't pass song data from favorites - it has incomplete structure
+            // Let the detail page fetch complete data from API
+            router.push({
+                pathname: '/song/[slug]',
+                params: { slug: song.slug }
+            });
+        } catch (error) {
+            console.error('Error adding favorite to history:', error);
+            // Navigate anyway even if history fails
+            router.push({
+                pathname: '/song/[slug]',
+                params: { slug: song.slug }
+            });
+        }
+    };
+
     const renderFavoriteItem = ({ item }: { item: FavoriteSong }) => (
         <Card
             style={styles.card}
-            onPress={() => router.push(`/(app)/song/${item.slug}`)}
+            onPress={() => handleFavoritePress(item)}
         >
             <Card.Content style={styles.cardContent}>
                 <View style={styles.cardHeader}>

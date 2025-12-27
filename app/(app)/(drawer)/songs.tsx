@@ -6,7 +6,7 @@ import PagerView from 'react-native-pager-view';
 import { Card, Chip, FAB, Searchbar, Text, useTheme } from 'react-native-paper';
 import AdvancedSearchFilters from '../../../components/AdvancedSearchFilters';
 import { fetchSongs, FetchSongsParams, PaginatedResponse } from '../../../services/api';
-import { clearSongHistory, getSongHistory, initializeDatabase, removeSongFromHistory, SongHistoryItem } from '../../../services/songHistory';
+import { addSongToHistory, clearSongHistory, getSongHistory, initializeDatabase, removeSongFromHistory, SongHistoryItem } from '../../../services/songHistory';
 import { styles } from '../../../styles/songs.styles';
 import { createThemedStyles } from '../../../styles/songs.themedStyles';
 
@@ -231,13 +231,11 @@ const SongsList = React.memo(() => {
         }
     };
 
-    // Refresh history only when screen gains focus AND Recent tab is active to avoid resetting scroll position on All Songs
+    // Refresh history when screen gains focus (regardless of which tab is active)
     useFocusEffect(
         useCallback(() => {
-            if (activeTab === 'recent') {
-                loadHistory();
-            }
-        }, [activeTab])
+            loadHistory();
+        }, [])
     );
 
     const handleRefresh = useCallback(async () => {
@@ -485,16 +483,37 @@ const SongsList = React.memo(() => {
         </View>
     ), [themedStyles, handleClearHistory]);
 
+    const handleSongPress = useCallback(async (song: Song) => {
+        try {
+            await addSongToHistory(song);
+            // Pass full song data to avoid API call in detail page
+            router.push({
+                pathname: '/song/[slug]',
+                params: { 
+                    slug: song.slug,
+                    song: JSON.stringify(song)
+                }
+            });
+        } catch (error) {
+            console.error('Error adding song to history:', error);
+            // Navigate anyway even if history fails
+            router.push({
+                pathname: '/song/[slug]',
+                params: { 
+                    slug: song.slug,
+                    song: JSON.stringify(song)
+                }
+            });
+        }
+    }, [router]);
+
     // Render item for All Songs (no delete button)
     const renderAllSongsItem = useCallback(({ item }: { item: Song }) => (
         <View style={themedStyles.songItem}>
             <Card
                 style={themedStyles.card}
                 accessibilityLabel="Song"
-                onPress={() => router.push({
-                    pathname: '/song/[slug]',
-                    params: { slug: item.slug, song: JSON.stringify(item) }
-                })}
+                onPress={() => handleSongPress(item)}
             >
                 <Card.Content style={themedStyles.cardContent}>
                     <View style={themedStyles.songHeader}>
@@ -566,7 +585,7 @@ const SongsList = React.memo(() => {
                 </Card.Content>
             </Card>
         </View>
-    ), [router, themedStyles]);
+    ), [handleSongPress, themedStyles]);
 
     // Render item for Recent Songs (with delete button)
     const renderRecentSongsItem = useCallback(({ item }: { item: Song }) => (
@@ -574,10 +593,7 @@ const SongsList = React.memo(() => {
             <Card
                 style={[themedStyles.card, styles.historyCard]}
                 accessibilityLabel="Recently viewed song"
-                onPress={() => router.push({
-                    pathname: '/song/[slug]',
-                    params: { slug: item.slug, song: JSON.stringify(item) }
-                })}
+                onPress={() => handleSongPress(item)}
             >
                 <Card.Content style={themedStyles.cardContent}>
                     <View style={themedStyles.songHeader}>
@@ -655,7 +671,7 @@ const SongsList = React.memo(() => {
                 </Card.Content>
             </Card>
         </View>
-    ), [router, themedStyles, handleDeleteFromHistory]);
+    ), [handleSongPress, themedStyles, handleDeleteFromHistory]);
 
     // All Songs Scene
     const AllSongsRoute = useCallback(() => (
