@@ -19,6 +19,7 @@ export interface SongLanguage {
 
 export interface Song {
     id: string;
+    code?: number | string;
     title: string;
     slug: string;
     youtube?: string;

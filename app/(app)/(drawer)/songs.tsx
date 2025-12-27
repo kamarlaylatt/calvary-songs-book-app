@@ -14,6 +14,7 @@ import { htmlToPlainText } from '../../../utils/html';
 // Song interface based on required fields
 interface Song {
     id: string;
+    code?: number | string;
     slug: string;
     title: string;
     youtube?: string;
@@ -364,9 +365,11 @@ const SongsList = React.memo(() => {
                                     </Text>
                                     {/* Recent label replaced by meta chips below */}
                                 </View>
-                                <Text style={themedStyles.songId} numberOfLines={1}>
-                                    ID: {item.id}
-                                </Text>
+                                    {item.code !== undefined && (
+                                        <Text style={themedStyles.songId} numberOfLines={1}>
+                                            Code: {item.code}
+                                        </Text>
+                                    )}
                             </View>
                             <View style={themedStyles.headerActions}>
                                 <View style={themedStyles.contentIndicators}>
@@ -522,10 +525,12 @@ const SongsList = React.memo(() => {
                                 <Text variant="titleMedium" style={themedStyles.songTitle} numberOfLines={2}>
                                     {item.title}
                                 </Text>
-                            </View>
-                            <Text style={themedStyles.songId} numberOfLines={1}>
-                                ID: {item.id}
-                            </Text>
+                            </View>                
+                                {item.code !== undefined && (
+                                    <Text style={themedStyles.songId} numberOfLines={1}>
+                                        Code: {item.code}
+                                    </Text>
+                                )}
                         </View>
                         <View style={themedStyles.headerActions}>
                             <View style={themedStyles.contentIndicators}>
@@ -603,9 +608,11 @@ const SongsList = React.memo(() => {
                                     {item.title}
                                 </Text>
                             </View>
-                            <Text style={themedStyles.songId} numberOfLines={1}>
-                                ID: {item.id}
-                            </Text>
+                                {item.code !== undefined && (
+                                    <Text style={themedStyles.songId} numberOfLines={1}>
+                                        Code: {item.code}
+                                    </Text>
+                                )}
                         </View>
                         <View style={themedStyles.headerActions}>
                             <View style={themedStyles.contentIndicators}>

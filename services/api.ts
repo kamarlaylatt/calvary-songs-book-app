@@ -18,7 +18,7 @@ export type {
     PaginatedResponse, SearchFilters, Song,
     SongDetail,
     SuggestSongRequest,
-    SuggestSongResponse,
+    SuggestSongResponse
 } from '@/types/models';
 
 export type {
@@ -28,6 +28,7 @@ export type {
 
 const mapSong = (song: any): Song => ({
     id: String(song.id),
+    code: song.code ?? 0,
     title: song.title,
     slug: song.slug ?? `song-${song.id}`,
     youtube: song.youtube,
