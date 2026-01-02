@@ -680,61 +680,24 @@ const SongsList = React.memo(() => {
         </View>
     ), [handleSongPress, themedStyles, handleDeleteFromHistory]);
 
-    // All Songs Scene
-    const AllSongsRoute = useCallback(() => (
-        <FlatList
-            data={allSongs}
-            renderItem={renderAllSongsItem}
-            keyExtractor={keyExtractor}
-            contentContainerStyle={themedStyles.listContainer}
-            showsVerticalScrollIndicator={false}
-            onRefresh={handleRefresh}
-            refreshing={refreshing}
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={renderFooter}
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
-            updateCellsBatchingPeriod={50}
-            initialNumToRender={10}
-            windowSize={10}
-            ListEmptyComponent={() => (
-                <View style={themedStyles.emptyState}>
-                    <Text style={themedStyles.emptyText}>
-                        {debouncedSearchQuery ? 'No songs found' : 'No songs available'}
-                    </Text>
-                    <Text style={themedStyles.emptySubtext}>
-                        {loading ? 'Loading...' : debouncedSearchQuery ? 'Try a different search term' : 'Pull to refresh'}
-                    </Text>
-                </View>
-            )}
-        />
-    ), [allSongs, renderAllSongsItem, keyExtractor, themedStyles, handleRefresh, refreshing, handleLoadMore, renderFooter, debouncedSearchQuery, loading]);
+    // Memoized empty components to prevent unnecessary re-renders
+    const AllSongsEmptyComponent = useMemo(() => (
+        <View style={themedStyles.emptyState}>
+            <Text style={themedStyles.emptyText}>
+                {debouncedSearchQuery ? 'No songs found' : 'No songs available'}
+            </Text>
+            <Text style={themedStyles.emptySubtext}>
+                {loading ? 'Loading...' : debouncedSearchQuery ? 'Try a different search term' : 'Pull to refresh'}
+            </Text>
+        </View>
+    ), [themedStyles, debouncedSearchQuery, loading]);
 
-    // Recent Songs Scene
-    const RecentSongsRoute = useCallback(() => (
-        <FlatList
-            data={historySongs}
-            renderItem={renderRecentSongsItem}
-            keyExtractor={keyExtractor}
-            contentContainerStyle={themedStyles.listContainer}
-            showsVerticalScrollIndicator={false}
-            onRefresh={handleRefresh}
-            refreshing={refreshing}
-            ListHeaderComponent={historySongs.length > 0 ? renderRecentHeader : undefined}
-            removeClippedSubviews={true}
-            maxToRenderPerBatch={10}
-            updateCellsBatchingPeriod={50}
-            initialNumToRender={10}
-            windowSize={10}
-            ListEmptyComponent={() => (
-                <View style={themedStyles.emptyState}>
-                    <Text style={themedStyles.emptyText}>No recently viewed songs</Text>
-                    <Text style={themedStyles.emptySubtext}>Songs you view will appear here</Text>
-                </View>
-            )}
-        />
-    ), [historySongs, renderRecentSongsItem, keyExtractor, themedStyles, handleRefresh, refreshing, renderRecentHeader]);
+    const RecentSongsEmptyComponent = useMemo(() => (
+        <View style={themedStyles.emptyState}>
+            <Text style={themedStyles.emptyText}>No recently viewed songs</Text>
+            <Text style={themedStyles.emptySubtext}>Songs you view will appear here</Text>
+        </View>
+    ), [themedStyles]);
 
     return (
         <View style={themedStyles.container}>
@@ -771,11 +734,46 @@ const SongsList = React.memo(() => {
                 initialPage={0}
                 onPageSelected={handlePageSelected}
             >
-                <View key="all" style={themedStyles.pageContainer}>
-                    <AllSongsRoute />
+                {/* All Songs Tab */}
+                <View style={themedStyles.pageContainer}>
+                    <FlatList
+                        data={allSongs}
+                        renderItem={renderAllSongsItem}
+                        keyExtractor={keyExtractor}
+                        contentContainerStyle={themedStyles.listContainer}
+                        showsVerticalScrollIndicator={false}
+                        onRefresh={handleRefresh}
+                        refreshing={refreshing}
+                        onEndReached={handleLoadMore}
+                        onEndReachedThreshold={0.5}
+                        ListFooterComponent={renderFooter}
+                        removeClippedSubviews={true}
+                        maxToRenderPerBatch={10}
+                        updateCellsBatchingPeriod={50}
+                        initialNumToRender={10}
+                        windowSize={10}
+                        ListEmptyComponent={AllSongsEmptyComponent}
+                    />
                 </View>
-                <View key="recent" style={themedStyles.pageContainer}>
-                    <RecentSongsRoute />
+
+                {/* Recent Songs Tab */}
+                <View style={themedStyles.pageContainer}>
+                    <FlatList
+                        data={historySongs}
+                        renderItem={renderRecentSongsItem}
+                        keyExtractor={keyExtractor}
+                        contentContainerStyle={themedStyles.listContainer}
+                        showsVerticalScrollIndicator={false}
+                        onRefresh={handleRefresh}
+                        refreshing={refreshing}
+                        ListHeaderComponent={historySongs.length > 0 ? renderRecentHeader : undefined}
+                        removeClippedSubviews={true}
+                        maxToRenderPerBatch={10}
+                        updateCellsBatchingPeriod={50}
+                        initialNumToRender={10}
+                        windowSize={10}
+                        ListEmptyComponent={RecentSongsEmptyComponent}
+                    />
                 </View>
             </PagerView>
 
