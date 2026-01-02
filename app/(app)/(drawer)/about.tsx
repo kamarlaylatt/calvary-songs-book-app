@@ -37,7 +37,7 @@ export default function AboutScreen() {
                         </Text>
 
                         <Text variant="bodyMedium" style={themedStyles.description}>
-                            Calvary Songs Book is a curated collection of worship and Christian songs.
+                            Calvary Songs Book is a curated collection of worship and gospel songs.
                             It’s designed to help you find songs quickly with easy search—perfect for
                             church services, small groups, and personal prayer times.
                         </Text>
