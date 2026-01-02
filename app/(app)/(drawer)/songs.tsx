@@ -704,7 +704,7 @@ const SongsList = React.memo(() => {
             <View style={themedStyles.searchContainer}>
                 <View style={themedStyles.searchRow}>
                     <Searchbar
-                        placeholder="Search by title, lyrics, or ID..."
+                        placeholder="Search by title, lyrics, or code..."
                         onChangeText={handleSearchChange}
                         value={searchQuery}
                         style={themedStyles.searchBar}
