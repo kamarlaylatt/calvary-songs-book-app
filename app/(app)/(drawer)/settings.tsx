@@ -61,7 +61,7 @@ export default function SettingsScreen() {
             <View style={themedStyles.section}>
                 <List.Item
                     title="App Version"
-                    description="1.0.0"
+                    description="1.0.1"
                     left={(props) => <List.Icon {...props} icon="information-outline" />}
                     style={themedStyles.listItem}
                     titleStyle={{ color: theme.colors.onSurface }}
