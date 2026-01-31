@@ -153,10 +153,6 @@ const HymnsPage = () => {
     setFiltersExpanded(false);
   }, []);
 
-  const handleClearFilters = useCallback(() => {
-    setSelectedCategory(undefined);
-  }, []);
-
   const handleRefresh = useCallback(async () => {
     await loadHymns(1, true);
   }, [loadHymns]);
@@ -374,15 +370,12 @@ const HymnsPage = () => {
         <View style={filterPanelStyles.filterPanel}>
           <View style={filterPanelStyles.filterPanelHeader}>
             <Text style={filterPanelStyles.filterPanelTitle}>Categories</Text>
-            <Chip
-              mode="outlined"
-              onPress={handleClearFilters}
+            <IconButton
               icon="close"
-              compact
-              disabled={!hasActiveFilters}
-            >
-              Clear
-            </Chip>
+              size={20}
+              onPress={() => setFiltersExpanded(false)}
+              iconColor={theme.colors.onSurfaceVariant}
+            />
           </View>
           <FlatList
             horizontal
