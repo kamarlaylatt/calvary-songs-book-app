@@ -6,6 +6,11 @@ import type {
     SongDetail,
     SuggestSongRequest,
     SuggestSongResponse,
+    FetchHymnsParams,
+    HymnPaginatedResponse,
+    HymnDetail,
+    HymnFilters,
+    HymnCategory,
 } from '@/types/models';
 import type {
     VersionCheckRequest,
@@ -18,7 +23,13 @@ export type {
     PaginatedResponse, SearchFilters, Song,
     SongDetail,
     SuggestSongRequest,
-    SuggestSongResponse
+    SuggestSongResponse,
+    FetchHymnsParams,
+    HymnPaginatedResponse,
+    HymnDetail,
+    HymnFilters,
+    HymnCategory,
+    Hymn,
 } from '@/types/models';
 
 export type {
@@ -157,6 +168,83 @@ export const submitSongSuggestion = async (
         return resp.data;
     } catch (error) {
         console.error('Error submitting song suggestion:', error);
+        throw error;
+    }
+};
+
+// Hymn API functions
+
+export const fetchHymns = async (
+    params?: FetchHymnsParams
+): Promise<HymnPaginatedResponse> => {
+    try {
+        const resp = await http.get('/hymns', { params });
+        const payload = resp.data;
+
+        return {
+            current_page: payload.current_page ?? 1,
+            data: payload.data ?? [],
+            first_page_url: payload.first_page_url ?? '',
+            from: payload.from ?? 1,
+            last_page: payload.last_page ?? 1,
+            last_page_url: payload.last_page_url ?? '',
+            next_page_url: payload.next_page_url ?? null,
+            path: payload.path ?? '',
+            per_page: payload.per_page ?? 20,
+            prev_page_url: payload.prev_page_url ?? null,
+            to: payload.to ?? 0,
+            total: payload.total ?? 0,
+        };
+    } catch (error) {
+        console.error('Error fetching hymns:', error);
+        throw error;
+    }
+};
+
+export const fetchHymnById = async (id: string | number): Promise<HymnDetail> => {
+    try {
+        const resp = await http.get(`/hymns/${id}`);
+        const payload = resp.data?.data ?? resp.data;
+
+        if (!payload) {
+            throw new Error('No hymn data found in response');
+        }
+
+        return payload;
+    } catch (error) {
+        console.error('Error fetching hymn by id:', error);
+        throw error;
+    }
+};
+
+export const fetchHymnCategories = async (): Promise<HymnCategory[]> => {
+    try {
+        const resp = await http.get('/hymn-categories');
+        const payload = resp.data;
+
+        return (payload ?? []).map((category: any) => ({
+            id: String(category.id),
+            name: category.name,
+        }));
+    } catch (error) {
+        console.error('Error fetching hymn categories:', error);
+        throw error;
+    }
+};
+
+export const fetchHymnFilters = async (): Promise<HymnFilters> => {
+    try {
+        const resp = await http.get('/hymn-filters');
+        const payload = resp.data;
+
+        return {
+            hymn_categories: (payload.hymn_categories ?? []).map((category: any) => ({
+                id: String(category.id),
+                name: category.name,
+            })),
+        };
+    } catch (error) {
+        console.error('Error fetching hymn filters:', error);
         throw error;
     }
 };

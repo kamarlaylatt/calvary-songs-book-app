@@ -125,3 +125,64 @@ export interface ValidationError {
         [field: string]: string[];
     };
 }
+
+// Hymn types
+export interface HymnCategory {
+    id: string;
+    name: string;
+}
+
+export interface HymnSong {
+    id: number;
+    code: number;
+    title: string;
+    slug: string;
+    youtube?: string;
+    lyrics?: string;
+    description?: string;
+    song_writer?: string;
+}
+
+export interface Hymn {
+    id: number;
+    no: number;
+    english_title: string;
+    reference_id?: number;
+    hymn_category_id?: number;
+    song_id?: number;
+    created_at: string;
+    updated_at: string;
+    song?: HymnSong;
+    hymn_category?: HymnCategory;
+}
+
+export interface HymnDetail extends Hymn {
+    song: HymnSong;
+    hymn_category: HymnCategory;
+}
+
+export interface HymnPaginatedResponse {
+    current_page: number;
+    data: Hymn[];
+    first_page_url: string;
+    from: number;
+    last_page: number;
+    last_page_url: string;
+    next_page_url: string | null;
+    path: string;
+    per_page: number;
+    prev_page_url: string | null;
+    to: number;
+    total: number;
+}
+
+export interface FetchHymnsParams {
+    search?: string;
+    hymn_category_id?: string;
+    limit?: number;
+    page?: number;
+}
+
+export interface HymnFilters {
+    hymn_categories: HymnCategory[];
+}

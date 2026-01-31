@@ -1,225 +1,35 @@
+import {
+  fetchHymnFilters,
+  fetchHymns,
+  type Hymn,
+  type HymnCategory,
+} from "@/services/api";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FlatList, StyleSheet, View } from "react-native";
-import { ActivityIndicator } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, View } from "react-native";
 import {
-  Button,
   Card,
   Chip,
   IconButton,
   Searchbar,
   Text,
-  useTheme,
+  useTheme
 } from "react-native-paper";
-import { createThemedStyles } from "../../../styles/songs.themedStyles";
 import { styles } from "../../../styles/songs.styles";
+import { createThemedStyles } from "../../../styles/songs.themedStyles";
 
-// Hymn interface
-interface Hymn {
-  id: string;
-  number: number;
-  title: string;
-  author?: string;
-  key?: string;
-  categories: string[];
-  lyrics: string;
-  meter?: string;
-}
-
-// Category filter
-interface HymnCategory {
-  id: string;
-  name: string;
-}
-
-// Sample hymn data
-const SAMPLE_HYMNS: Hymn[] = [
-  {
-    id: "1",
-    number: 1,
-    title: "Amazing Grace",
-    author: "John Newton",
-    key: "G",
-    categories: ["Traditional", "Grace", "Salvation"],
-    meter: "8.6.8.6",
-    lyrics: `Amazing grace! How sweet the sound\nThat saved a wretch like me!\nI once was lost, but now am found;\nWas blind, but now I see.`,
-  },
-  {
-    id: "2",
-    number: 2,
-    title: "How Great Thou Art",
-    author: "Carl Boberg",
-    key: "Ab",
-    categories: ["Praise", "Traditional", "Worship"],
-    meter: "Common Meter",
-    lyrics: `O Lord my God, when I in awesome wonder\nConsider all the worlds Thy hands have made.`,
-  },
-  {
-    id: "3",
-    number: 3,
-    title: "It Is Well with My Soul",
-    author: "Horatio Spafford",
-    key: "Db",
-    categories: ["Peace", "Trust", "Traditional"],
-    meter: "11.10.11.10",
-    lyrics: `When peace, like a river, attendeth my way.`,
-  },
-  {
-    id: "4",
-    number: 4,
-    title: "Blessed Assurance",
-    author: "Fanny Crosby",
-    key: "G",
-    categories: ["Assurance", "Traditional", "Testimony"],
-    meter: "9.10.9.9",
-    lyrics: `Blessed assurance, Jesus is mine!`,
-  },
-  {
-    id: "5",
-    number: 5,
-    title: "Come Thou Fount",
-    author: "Robert Robinson",
-    key: "F",
-    categories: ["Traditional", "Redemption", "Worship"],
-    meter: "8.7.8.7.D",
-    lyrics: `Come, Thou Fount of every blessing.`,
-  },
-  {
-    id: "6",
-    number: 6,
-    title: "Holy, Holy, Holy",
-    author: "Reginald Heber",
-    key: "C",
-    categories: ["Trinity", "Traditional", "Worship"],
-    meter: "11.12.11.10",
-    lyrics: `Holy, holy, holy! Lord God Almighty!`,
-  },
-  {
-    id: "7",
-    number: 7,
-    title: "Be Thou My Vision",
-    author: "Irish Traditional",
-    key: "D",
-    categories: ["Devotion", "Traditional", "Guidance"],
-    meter: "10.11.11.11",
-    lyrics: `Be Thou my Vision, O Lord of my heart.`,
-  },
-  {
-    id: "8",
-    number: 8,
-    title: "Crown Him with Many Crowns",
-    author: "Matthew Bridges",
-    key: "G",
-    categories: ["Coronation", "Traditional", "Praise"],
-    meter: "10.10.10.10",
-    lyrics: `Crown Him with many crowns.`,
-  },
-  {
-    id: "9",
-    number: 9,
-    title: "A Mighty Fortress Is Our God",
-    author: "Martin Luther",
-    key: "Bb",
-    categories: ["Protection", "Traditional", "Battle"],
-    meter: "8.7.8.7.6.6.6.6",
-    lyrics: `A mighty fortress is our God.`,
-  },
-  {
-    id: "10",
-    number: 10,
-    title: "Great Is Thy Faithfulness",
-    author: "Thomas Chisholm",
-    key: "G",
-    categories: ["Faithfulness", "Contemporary", "Praise"],
-    meter: "11.11.11.11",
-    lyrics: `Great is Thy faithfulness, O God my Father.`,
-  },
-  {
-    id: "11",
-    number: 11,
-    title: "When I Survey the Wondrous Cross",
-    author: "Isaac Watts",
-    key: "E",
-    categories: ["Cross", "Traditional", "Lent"],
-    meter: "Long Meter",
-    lyrics: `When I survey the wondrous cross.`,
-  },
-  {
-    id: "12",
-    number: 12,
-    title: "Rock of Ages",
-    author: "Augustus Toplady",
-    key: "D",
-    categories: ["Refuge", "Traditional", "Salvation"],
-    meter: "7.7.7.7.7.7",
-    lyrics: `Rock of Ages, cleft for me.`,
-  },
-  {
-    id: "13",
-    number: 13,
-    title: "Just As I Am",
-    author: "Charlotte Elliott",
-    key: "C",
-    categories: ["Invitation", "Traditional", "Salvation"],
-    meter: "8.8.8.8",
-    lyrics: `Just as I am, without one plea.`,
-  },
-  {
-    id: "14",
-    number: 14,
-    title: "To God Be the Glory",
-    author: "Fanny Crosby",
-    key: "F",
-    categories: ["Praise", "Traditional", "Victory"],
-    meter: "11.11.11.11",
-    lyrics: `To God be the glory, great things He hath done!`,
-  },
-  {
-    id: "15",
-    number: 15,
-    title: "Standing on the Promises",
-    author: "R. Kelso Carter",
-    key: "Eb",
-    categories: ["Faith", "Traditional", "Trust"],
-    meter: "12.11.12.11",
-    lyrics: `Standing on the promises of Christ my King.`,
-  },
-];
-
-// Available categories for filtering
-const HYMN_CATEGORIES: HymnCategory[] = [
-  { id: "traditional", name: "Traditional" },
-  { id: "contemporary", name: "Contemporary" },
-  { id: "praise", name: "Praise" },
-  { id: "worship", name: "Worship" },
-  { id: "grace", name: "Grace" },
-  { id: "peace", name: "Peace" },
-  { id: "trust", name: "Trust" },
-  { id: "salvation", name: "Salvation" },
-  { id: "protection", name: "Protection" },
-  { id: "devotion", name: "Devotion" },
-  { id: "cross", name: "Cross" },
-  { id: "testimony", name: "Testimony" },
-  { id: "guidance", name: "Guidance" },
-  { id: "invitation", name: "Invitation" },
-  { id: "victory", name: "Victory" },
-  { id: "faith", name: "Faith" },
-  { id: "redemption", name: "Redemption" },
-  { id: "trinity", name: "Trinity" },
-  { id: "coronation", name: "Coronation" },
-  { id: "refuge", name: "Refuge" },
-  { id: "assurance", name: "Assurance" },
-  { id: "battle", name: "Battle" },
-  { id: "faithfulness", name: "Faithfulness" },
-  { id: "lent", name: "Lent" },
-];
+// Available categories for filtering - will be loaded from API
+const HYMN_CATEGORIES_DEFAULT: HymnCategory[] = [];
 
 const HymnsPage = () => {
   const router = useRouter();
   const theme = useTheme();
   const themedStyles = createThemedStyles(theme);
 
-  const [hymns, setHymns] = useState<Hymn[]>(SAMPLE_HYMNS);
+  const [hymns, setHymns] = useState<Hymn[]>([]);
+  const [hymnCategories, setHymnCategories] = useState<HymnCategory[]>(
+    HYMN_CATEGORIES_DEFAULT,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<
@@ -229,8 +39,86 @@ const HymnsPage = () => {
     string | undefined
   >();
   const [filtersExpanded, setFiltersExpanded] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+
+  // Load hymn categories/filters
+  useEffect(() => {
+    const loadFilters = async () => {
+      try {
+        const filters = await fetchHymnFilters();
+        setHymnCategories(filters.hymn_categories);
+      } catch (error) {
+        console.error("Error loading hymn filters:", error);
+      }
+    };
+    loadFilters();
+  }, []);
+
+  // Load hymns
+  const loadHymns = useCallback(
+    async (page = 1, isRefresh = false) => {
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        } else if (page === 1) {
+          setLoading(true);
+        } else {
+          setLoadingMore(true);
+        }
+
+        const params: Record<string, string | number> = {
+          limit: 20,
+          page,
+        };
+
+        if (debouncedSearchQuery.trim()) {
+          params.search = debouncedSearchQuery;
+        }
+
+        if (debouncedCategory) {
+          params.hymn_category_id = debouncedCategory;
+        }
+
+        const response = await fetchHymns(params);
+
+        if (page === 1) {
+          setHymns(response.data);
+        } else {
+          setHymns((prev) => [...prev, ...response.data]);
+        }
+
+        setCurrentPage(response.current_page);
+        setLastPage(response.last_page);
+      } catch (error) {
+        console.error("Error loading hymns:", error);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+        setLoadingMore(false);
+      }
+    },
+    [debouncedSearchQuery, debouncedCategory],
+  );
+
+  // Initial load
+  useEffect(() => {
+    loadHymns(1);
+  }, []);
+
+  // Reload when filters change
+  useEffect(() => {
+    if (currentPage === 1 && !loading) {
+      loadHymns(1);
+    } else {
+      setCurrentPage(1);
+      setHymns([]);
+      loadHymns(1);
+    }
+  }, [debouncedSearchQuery, debouncedCategory]);
 
   // Debounce search query
   useEffect(() => {
@@ -249,31 +137,6 @@ const HymnsPage = () => {
 
     return () => clearTimeout(timer);
   }, [selectedCategory]);
-
-  // Filter hymns based on search and category
-  const filteredHymns = useMemo(() => {
-    return hymns.filter((hymn) => {
-      const matchesSearch =
-        !debouncedSearchQuery.trim() ||
-        hymn.title.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        hymn.author
-          ?.toLowerCase()
-          .includes(debouncedSearchQuery.toLowerCase()) ||
-        hymn.number.toString().includes(debouncedSearchQuery);
-
-      const matchesCategory =
-        !debouncedCategory ||
-        hymn.categories.some(
-          (cat) =>
-            cat.toLowerCase() ===
-            HYMN_CATEGORIES.find(
-              (c) => c.id === debouncedCategory,
-            )?.name.toLowerCase(),
-        );
-
-      return matchesSearch && matchesCategory;
-    });
-  }, [hymns, debouncedSearchQuery, debouncedCategory]);
 
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);
@@ -295,17 +158,20 @@ const HymnsPage = () => {
   }, []);
 
   const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  }, []);
+    await loadHymns(1, true);
+  }, [loadHymns]);
+
+  const handleLoadMore = useCallback(() => {
+    if (!loadingMore && currentPage < lastPage) {
+      loadHymns(currentPage + 1);
+    }
+  }, [currentPage, lastPage, loadingMore, loadHymns]);
 
   const handleHymnPress = useCallback(
     (hymn: Hymn) => {
       router.push({
         pathname: "/hymn/[number]",
-        params: { number: hymn.number.toString(), hymn: JSON.stringify(hymn) },
+        params: { number: hymn.id.toString() },
       });
     },
     [router],
@@ -328,83 +194,47 @@ const HymnsPage = () => {
                     style={themedStyles.songTitle}
                     numberOfLines={2}
                   >
-                    {item.title}
+                    {item.song?.title}
                   </Text>
                 </View>
                 <Text style={themedStyles.songId} numberOfLines={1}>
-                  No. {item.number}
+                  No. {item.no}
                 </Text>
-              </View>
-              <View style={themedStyles.headerActions}>
-                <View style={themedStyles.contentIndicators}>
-                  {item.key && (
-                    <Chip
-                      mode="outlined"
-                      compact
-                      icon="music"
-                      style={themedStyles.contentChip}
-                      textStyle={themedStyles.contentChipText}
-                    >
-                      {item.key}
-                    </Chip>
-                  )}
-                  {item.meter && (
-                    <Chip
-                      mode="outlined"
-                      compact
-                      icon="texture"
-                      style={themedStyles.contentChip}
-                      textStyle={themedStyles.contentChipText}
-                    >
-                      {item.meter}
-                    </Chip>
-                  )}
-                </View>
               </View>
             </View>
 
-            {item.author && (
+            {item.song?.song_writer && (
               <View style={{ marginTop: 8 }}>
                 <Text
                   variant="bodySmall"
                   style={{ color: theme.colors.onSurfaceVariant }}
                 >
-                  by {item.author}
+                  by {item.song.song_writer}
                 </Text>
               </View>
             )}
 
-            {item.categories && item.categories.length > 0 && (
+            {item.hymn_category && (
               <View style={themedStyles.categoriesContainer}>
-                {item.categories.slice(0, 3).map((category, index) => (
-                  <Chip
-                    key={`${item.id}-${index}`}
-                    mode="outlined"
-                    compact
-                    style={themedStyles.categoryChip}
-                    textStyle={themedStyles.categoryChipText}
-                  >
-                    {category}
-                  </Chip>
-                ))}
-                {item.categories.length > 3 && (
-                  <Chip
-                    mode="outlined"
-                    compact
-                    style={themedStyles.categoryChip}
-                    textStyle={themedStyles.categoryChipText}
-                  >
-                    +{item.categories.length - 3} more
-                  </Chip>
-                )}
+                <Chip
+                  key={`${item.id}-category`}
+                  mode="outlined"
+                  compact
+                  style={themedStyles.categoryChip}
+                  textStyle={themedStyles.categoryChipText}
+                >
+                  {item.hymn_category.name}
+                </Chip>
               </View>
             )}
 
-            <View style={themedStyles.songFooter}>
-              <Text style={themedStyles.description} numberOfLines={3}>
-                {item.lyrics}
-              </Text>
-            </View>
+            {item.song?.lyrics && (
+              <View style={themedStyles.songFooter}>
+                <Text style={themedStyles.description} numberOfLines={3}>
+                  {item.song.lyrics}
+                </Text>
+              </View>
+            )}
           </Card.Content>
         </Card>
       </View>
@@ -438,18 +268,21 @@ const HymnsPage = () => {
     [selectedCategory, handleCategoryPress, themedStyles, theme],
   );
 
-  const keyExtractor = useCallback((item: Hymn | HymnCategory) => item.id, []);
+  const keyExtractor = useCallback(
+    (item: Hymn | HymnCategory) => String(item.id),
+    [],
+  );
 
   const categoryKeyExtractor = useCallback((item: HymnCategory) => item.id, []);
 
   const renderFooter = useCallback(() => {
-    if (!loading) return null;
+    if (!loadingMore) return null;
     return (
       <View style={styles.loadingMore}>
         <ActivityIndicator size="small" />
       </View>
     );
-  }, [loading]);
+  }, [loadingMore]);
 
   const EmptyComponent = useMemo(
     () => (
@@ -553,7 +386,7 @@ const HymnsPage = () => {
           </View>
           <FlatList
             horizontal
-            data={HYMN_CATEGORIES}
+            data={hymnCategories}
             renderItem={renderCategoryItem}
             keyExtractor={categoryKeyExtractor}
             showsHorizontalScrollIndicator={false}
@@ -588,7 +421,7 @@ const HymnsPage = () => {
             </Text>
             {selectedCategory && (
               <Chip mode="flat" onClose={() => setSelectedCategory(undefined)}>
-                {HYMN_CATEGORIES.find((c) => c.id === selectedCategory)?.name ||
+                {hymnCategories.find((c) => c.id === selectedCategory)?.name ||
                   "Category"}
               </Chip>
             )}
@@ -598,16 +431,18 @@ const HymnsPage = () => {
 
       {/* Hymns List */}
       <FlatList
-        data={filteredHymns}
+        data={hymns}
         renderItem={renderHymnItem}
         keyExtractor={keyExtractor}
         contentContainerStyle={[
           themedStyles.listContainer,
-          filteredHymns.length === 0 && { flex: 1 },
+          hymns.length === 0 && { flex: 1 },
         ]}
         showsVerticalScrollIndicator={false}
         onRefresh={handleRefresh}
         refreshing={refreshing}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
         ListFooterComponent={renderFooter}
         ListEmptyComponent={EmptyComponent}
         removeClippedSubviews={true}
