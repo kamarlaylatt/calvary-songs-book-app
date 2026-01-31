@@ -148,7 +148,6 @@ function HymnDetailScreen() {
     lyricsContainer: {
       padding: 20,
       borderRadius: 12,
-      backgroundColor: theme.colors.surfaceVariant,
       marginTop: 4,
     },
     lyricsText: {
