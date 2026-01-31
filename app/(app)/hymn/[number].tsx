@@ -40,8 +40,8 @@ function HymnDetailScreen() {
         setError(null);
         const data = await fetchHymnById(hymnId);
         setHymn(data);
-        // Check favorite status after loading hymn
-        checkFavoriteStatus(`hymn-${data.id}`);
+        // Check favorite status after loading hymn (use song slug for favorites)
+        checkFavoriteStatus(data.song.slug);
       } catch (err) {
         console.error("Error loading hymn:", err);
         setError("Failed to load hymn. Please try again.");
@@ -227,7 +227,7 @@ function HymnDetailScreen() {
       fetchHymnById(hymnId)
         .then((data) => {
           setHymn(data);
-          checkFavoriteStatus(`hymn-${data.id}`);
+          checkFavoriteStatus(data.song.slug);
         })
         .catch((err) => {
           console.error("Error loading hymn:", err);
@@ -263,7 +263,7 @@ function HymnDetailScreen() {
     );
   }
 
-  const isFavorite = favoriteStatus[`hymn-${hymn.id}`] || false;
+  const isFavorite = favoriteStatus[hymn.song.slug] || false;
   const lyricsSections = hymn.song?.lyrics
     ? formatLyrics(hymn.song.lyrics)
     : [];
@@ -289,9 +289,9 @@ function HymnDetailScreen() {
                 size={24}
                 onPress={() =>
                   toggleFavorite({
-                    id: `hymn-${hymn.id}`,
-                    slug: `hymn-${hymn.id}`,
-                    title: hymn.english_title,
+                    id: String(hymn.song.id),
+                    slug: hymn.song.slug,
+                    title: hymn.song.title,
                   })
                 }
               />
