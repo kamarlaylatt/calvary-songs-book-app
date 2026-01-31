@@ -292,6 +292,13 @@ function HymnDetailScreen() {
                     id: String(hymn.song.id),
                     slug: hymn.song.slug,
                     title: hymn.song.title,
+                    style: { id: "", name: "" },
+                    categories: [],
+                    song_languages: [],
+                    lyrics: hymn.song.lyrics,
+                    youtube: hymn.song.youtube,
+                    description: hymn.song.description,
+                    song_writer: hymn.song.song_writer,
                   })
                 }
               />
