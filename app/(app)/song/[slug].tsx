@@ -440,7 +440,11 @@ function SongDetailScreen() {
                         {/* <Surface style={themedStyles.lyricsContainer} elevation={1}> */}
                         <RenderHtml
                             contentWidth={width - 80} // Account for card padding and container padding
-                            source={{ html: song.lyrics }}
+                            source={{
+                                html: song.lyrics.includes('<')
+                                    ? song.lyrics
+                                    : song.lyrics.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')
+                            }}
                             tagsStyles={tagsStyles}
                             systemFonts={systemFonts}
                             enableExperimentalMarginCollapsing={true}
