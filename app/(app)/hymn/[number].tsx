@@ -276,9 +276,20 @@ function HymnDetailScreen() {
       <Card style={themedStyles.headerCard}>
         <Card.Content style={themedStyles.headerContent}>
           <View style={themedStyles.titleSection}>
-            <Text variant="headlineMedium" style={themedStyles.title}>
-              {hymn.no}. {hymn.song.title}
-            </Text>
+            <View style={{ flex: 1 }}>
+              <Text variant="headlineMedium" style={themedStyles.title}>
+                {hymn.no}. {hymn.song.title}
+              </Text>
+              <Text
+                variant="bodyMedium"
+                style={{
+                  color: theme.colors.onSurfaceVariant,
+                  marginTop: 4,
+                }}
+              >
+                {hymn.english_title}
+              </Text>
+            </View>
             <View style={themedStyles.headerActions}>
               <IconButton
                 icon={isFavorite ? "heart" : "heart-outline"}
