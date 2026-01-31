@@ -277,7 +277,7 @@ function HymnDetailScreen() {
         <Card.Content style={themedStyles.headerContent}>
           <View style={themedStyles.titleSection}>
             <Text variant="headlineMedium" style={themedStyles.title}>
-              {hymn.song.title}
+              {hymn.no}. {hymn.song.title}
             </Text>
             <View style={themedStyles.headerActions}>
               <IconButton
@@ -303,7 +303,7 @@ function HymnDetailScreen() {
               />
               <Surface style={themedStyles.numberChip} elevation={1}>
                 <Text variant="labelMedium" style={themedStyles.numberText}>
-                  #{hymn.no}
+                  #{hymn.song.id}
                 </Text>
               </Surface>
             </View>
