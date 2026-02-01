@@ -167,7 +167,10 @@ const HymnsPage = () => {
     (hymn: Hymn) => {
       router.push({
         pathname: "/hymn/[number]",
-        params: { number: hymn.id.toString() },
+        params: {
+          number: hymn.id.toString(),
+          hymn: JSON.stringify(hymn),
+        },
       });
     },
     [router],

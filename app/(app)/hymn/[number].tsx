@@ -1,7 +1,7 @@
 import { fetchHymnById, type HymnDetail } from "@/services/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import {
     Card,
     Chip,
@@ -16,42 +16,73 @@ import { useFavorites } from "../../../contexts/FavoritesContext";
 function HymnDetailScreen() {
   const { favoriteStatus, toggleFavorite, checkFavoriteStatus } =
     useFavorites();
-  const params = useLocalSearchParams<{ number: string }>();
+  const params = useLocalSearchParams<{ number: string; hymn?: string }>();
   const router = useRouter();
 
   const hymnId = typeof params.number === "string" ? params.number : null;
-  const [hymn, setHymn] = useState<HymnDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const passedHymn = params.hymn ? JSON.parse(params.hymn) : null;
+  const [hymn, setHymn] = useState<HymnDetail | null>(passedHymn);
+  const [loading, setLoading] = useState(!passedHymn);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const theme = useTheme();
 
   // Load hymn data from API
-  useEffect(() => {
-    const loadHymn = async () => {
-      if (!hymnId) {
-        setError("Invalid hymn ID");
-        setLoading(false);
-        return;
-      }
+  const loadHymn = async (isRefresh = false) => {
+    if (!hymnId) {
+      setError("Invalid hymn ID");
+      setLoading(false);
+      return;
+    }
 
-      try {
+    // If we have passed hymn data and it's not a refresh, use it directly
+    if (passedHymn && !isRefresh) {
+      setHymn(passedHymn);
+      await checkFavoriteStatus(passedHymn.song.slug);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
         setLoading(true);
-        setError(null);
-        const data = await fetchHymnById(hymnId);
-        setHymn(data);
-        // Check favorite status after loading hymn (use song slug for favorites)
-        checkFavoriteStatus(data.song.slug);
-      } catch (err) {
-        console.error("Error loading hymn:", err);
-        setError("Failed to load hymn. Please try again.");
-      } finally {
-        setLoading(false);
       }
-    };
+      setError(null);
+      const data = await fetchHymnById(hymnId);
+      setHymn(data);
+      // Check favorite status after loading hymn (use song slug for favorites)
+      checkFavoriteStatus(data.song.slug);
+    } catch (err) {
+      console.error("Error loading hymn:", err);
+      setError("Failed to load hymn. Please try again.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
 
-    loadHymn();
-  }, [hymnId]);
+  // Initial load
+  useEffect(() => {
+    if (!hymnId) {
+      setLoading(false);
+      return;
+    }
+
+    // Only fetch from API if we don't have passed data
+    if (!passedHymn) {
+      loadHymn();
+    } else {
+      checkFavoriteStatus(passedHymn.song.slug);
+      setLoading(false);
+    }
+  }, [hymnId, passedHymn]);
+
+  const onRefresh = useCallback(() => {
+    loadHymn(true);
+  }, []);
 
   // Create theme-aware styles
   const themedStyles = StyleSheet.create({
@@ -220,23 +251,8 @@ function HymnDetailScreen() {
   };
 
   const handleRetry = useCallback(() => {
-    if (hymnId) {
-      setLoading(true);
-      setError(null);
-      fetchHymnById(hymnId)
-        .then((data) => {
-          setHymn(data);
-          checkFavoriteStatus(data.song.slug);
-        })
-        .catch((err) => {
-          console.error("Error loading hymn:", err);
-          setError("Failed to load hymn. Please try again.");
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    }
-  }, [hymnId, checkFavoriteStatus]);
+    loadHymn();
+  }, [loadHymn]);
 
   if (loading) {
     return (
@@ -271,6 +287,14 @@ function HymnDetailScreen() {
     <ScrollView
       style={themedStyles.container}
       showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={[theme.colors.primary]}
+          tintColor={theme.colors.primary}
+        />
+      }
     >
       {/* Header Card */}
       <Card style={themedStyles.headerCard}>
