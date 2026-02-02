@@ -1,8 +1,9 @@
 import { fetchHymnById, type HymnDetail } from "@/services/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Linking, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import {
+    Button,
     Card,
     Chip,
     Divider,
@@ -11,6 +12,7 @@ import {
     Text,
     useTheme,
 } from "react-native-paper";
+import YoutubePlayer from "react-native-youtube-iframe";
 import { useFavorites } from "../../../contexts/FavoritesContext";
 
 function HymnDetailScreen() {
@@ -25,6 +27,9 @@ function HymnDetailScreen() {
   const [loading, setLoading] = useState(!passedHymn);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [showPlayer, setShowPlayer] = useState(false);
+  const [playerError, setPlayerError] = useState<string | null>(null);
 
   const theme = useTheme();
 
@@ -83,6 +88,36 @@ function HymnDetailScreen() {
   const onRefresh = useCallback(() => {
     loadHymn(true);
   }, []);
+
+  // Extract YouTube video ID from URL
+  const getYouTubeVideoId = (url: string): string | null => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
+
+  const togglePlayer = () => {
+    setShowPlayer(!showPlayer);
+    setPlayerError(null);
+  };
+
+  const openInYouTube = async () => {
+    try {
+      const url = hymn?.song?.youtube;
+      if (!url) return;
+      const videoId = getYouTubeVideoId(url);
+      const appUrl = videoId ? `vnd.youtube://${videoId}` : url;
+      const webUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : url;
+      const canOpenApp = await Linking.canOpenURL(appUrl);
+      await Linking.openURL(canOpenApp ? appUrl : webUrl);
+    } catch (e) {
+      if (hymn?.song?.youtube) {
+        await Linking.openURL(hymn.song.youtube);
+      }
+    }
+  };
+
+  const { width } = useWindowDimensions();
 
   // Create theme-aware styles
   const themedStyles = StyleSheet.create({
@@ -218,6 +253,23 @@ function HymnDetailScreen() {
       justifyContent: "center",
       alignItems: "center",
     },
+    youtubeControls: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    playerContainer: {
+      marginTop: 12,
+      borderRadius: 12,
+      overflow: "hidden",
+    },
+    youtubePlayer: {
+      borderRadius: 12,
+    },
+    errorText: {
+      marginBottom: 16,
+      textAlign: "center",
+      color: theme.colors.error,
+    },
   });
 
   const formatLyrics = (lyrics: string) => {
@@ -351,19 +403,6 @@ function HymnDetailScreen() {
               </Text>
             </View>
           )}
-
-          <View style={themedStyles.metaInfo}>
-            {hymn.song?.youtube && (
-              <Chip
-                mode="flat"
-                style={themedStyles.metaChip}
-                icon="youtube"
-                textStyle={{ color: theme.colors.primary }}
-              >
-                Video Available
-              </Chip>
-            )}
-          </View>
         </Card.Content>
       </Card>
 
@@ -408,6 +447,62 @@ function HymnDetailScreen() {
         </Card>
       )}
 
+      {/* YouTube Card */}
+      {hymn.song?.youtube && (
+        <Card style={themedStyles.sectionCard}>
+          <Card.Content>
+            <View style={themedStyles.sectionHeader}>
+              <Text variant="titleLarge" style={themedStyles.sectionTitle}>
+                {showPlayer ? 'Player' : 'Listen Song'}
+              </Text>
+              <View style={themedStyles.youtubeControls}>
+                <IconButton
+                  icon={showPlayer ? 'close' : 'play-circle'}
+                  iconColor={theme.colors.primary}
+                  size={24}
+                  onPress={togglePlayer}
+                />
+                {hymn.song.youtube && (
+                  <IconButton
+                    icon="open-in-new"
+                    iconColor={theme.colors.primary}
+                    size={24}
+                    onPress={openInYouTube}
+                  />
+                )}
+              </View>
+            </View>
+
+            {showPlayer && getYouTubeVideoId(hymn.song.youtube) && (
+              <View style={themedStyles.playerContainer}>
+                <YoutubePlayer
+                  height={200}
+                  videoId={getYouTubeVideoId(hymn.song.youtube)!}
+                  webViewStyle={themedStyles.youtubePlayer}
+                  initialPlayerParams={{
+                    cc_lang_pref: 'en',
+                    showClosedCaptions: false,
+                    modestbranding: true,
+                    rel: false,
+                    iv_load_policy: 3,
+                  }}
+                  onError={() => setPlayerError('Playback may require sign-in. Open in YouTube instead.')}
+                  onReady={() => setPlayerError(null)}
+                />
+                {playerError && (
+                  <View style={{ marginTop: 8, gap: 8 }}>
+                    <Text style={themedStyles.errorText}>{playerError}</Text>
+                    <Button mode="outlined" onPress={openInYouTube}>
+                      Open in YouTube
+                    </Button>
+                  </View>
+                )}
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+      )}
+
       {/* Lyrics Card */}
       {hymn.song?.lyrics && (
         <Card style={themedStyles.sectionCard}>
@@ -432,34 +527,6 @@ function HymnDetailScreen() {
                 </View>
               ))}
             </View>
-          </Card.Content>
-        </Card>
-      )}
-
-      {/* YouTube Link Card */}
-      {hymn.song?.youtube && (
-        <Card style={themedStyles.sectionCard}>
-          <Card.Content>
-            <View style={themedStyles.sectionHeader}>
-              <Text variant="titleLarge" style={themedStyles.sectionTitle}>
-                Watch on YouTube
-              </Text>
-              <IconButton
-                icon="youtube"
-                size={24}
-                iconColor={theme.colors.primary}
-                onPress={() => {
-                  // Could open the YouTube link here
-                  console.log("Open YouTube:", hymn.song?.youtube);
-                }}
-              />
-            </View>
-            <Text
-              variant="bodySmall"
-              style={{ color: theme.colors.onSurfaceVariant }}
-            >
-              {hymn.song.youtube}
-            </Text>
           </Card.Content>
         </Card>
       )}
