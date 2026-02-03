@@ -1,6 +1,6 @@
-import type { VersionCheckResponse } from '@/types/version';
-import React from 'react';
-import { StyleSheet } from 'react-native';
+import type { VersionCheckResponse } from "@/types/version";
+import React from "react";
+import { StyleSheet } from "react-native";
 import {
     Button,
     Dialog,
@@ -8,104 +8,104 @@ import {
     Portal,
     Text,
     useTheme,
-} from 'react-native-paper';
-import appConfig from '../app.json';
+} from "react-native-paper";
+import appConfig from "../app.json";
 
 interface UpdateDialogProps {
-    visible: boolean;
-    versionData: VersionCheckResponse | null;
-    onUpdate: () => void;
-    onDismiss: () => void;
+  visible: boolean;
+  versionData: VersionCheckResponse | null;
+  onUpdate: () => void;
+  onDismiss: () => void;
 }
 
 export function UpdateDialog({
-    visible,
-    versionData,
-    onUpdate,
-    onDismiss,
+  visible,
+  versionData,
+  onUpdate,
+  onDismiss,
 }: UpdateDialogProps) {
-    const theme = useTheme();
+  const theme = useTheme();
 
-    if (!versionData) return null;
+  if (!versionData) return null;
 
-    const styles = StyleSheet.create({
-        dialog: {
-            backgroundColor: theme.colors.surface,
-        },
-        title: {
-            color: theme.colors.onSurface,
-        },
-        content: {
-            color: theme.colors.onSurfaceVariant,
-        },
-        button: {
-            marginHorizontal: 4,
-        },
-        updateButton: {
-            backgroundColor: theme.colors.primary,
-            width: 100
-        },
-        updateButtonText: {
-            color: theme.colors.onPrimary,
-        },
-        dismissButtonText: {
-            color: theme.colors.primary,
-        },
-        divider: {
-            backgroundColor: theme.colors.outline,
-        },
-    });
+  const styles = StyleSheet.create({
+    dialog: {
+      backgroundColor: theme.colors.surface,
+    },
+    title: {
+      color: theme.colors.onSurface,
+    },
+    content: {
+      color: theme.colors.onSurfaceVariant,
+    },
+    button: {
+      marginHorizontal: 4,
+    },
+    updateButton: {
+      backgroundColor: theme.colors.primary,
+      width: 100,
+    },
+    updateButtonText: {
+      color: theme.colors.onPrimary,
+    },
+    dismissButtonText: {
+      color: theme.colors.primary,
+    },
+    divider: {
+      backgroundColor: theme.colors.outline,
+    },
+  });
 
-    return (
-        <Portal>
-            <Dialog
-                visible={visible}
-                onDismiss={versionData.needs_update ? undefined : onDismiss}
-                style={styles.dialog}
-                dismissable={!versionData.needs_update}
+  return (
+    <Portal>
+      <Dialog
+        visible={visible}
+        onDismiss={versionData.needs_update ? undefined : onDismiss}
+        style={styles.dialog}
+        dismissable={!versionData.needs_update}
+      >
+        <Dialog.Title style={styles.title}>Update Available</Dialog.Title>
+        <Dialog.Content>
+          <Text variant="bodyMedium" style={styles.content}>
+            {versionData.message}
+          </Text>
+          <Text variant="bodySmall" style={[styles.content, { marginTop: 8 }]}>
+            Current version: {appConfig.expo.version} (code:{" "}
+            {parseInt(process.env.EXPO_PUBLIC_VERSION_CODE || "3", 10)})
+          </Text>
+          <Text variant="bodySmall" style={styles.content}>
+            Latest version: {versionData.latest_version_name} (code:{" "}
+            {versionData.latest_version_code})
+          </Text>
+          {versionData.release_notes && (
+            <>
+              <Divider style={[styles.divider, { marginVertical: 12 }]} />
+              <Text variant="bodySmall" style={styles.content}>
+                Release notes: {versionData.release_notes}
+              </Text>
+            </>
+          )}
+        </Dialog.Content>
+        <Dialog.Actions>
+          {!versionData.needs_update && (
+            <Button
+              onPress={onDismiss}
+              style={styles.button}
+              textColor={styles.dismissButtonText.color}
             >
-                <Dialog.Title style={styles.title}>
-                    Update Available
-                </Dialog.Title>
-                <Dialog.Content>
-                    <Text variant="bodyMedium" style={styles.content}>
-                        {versionData.message}
-                    </Text>
-                    <Text variant="bodySmall" style={[styles.content, { marginTop: 8 }]}>
-                        Current version: {appConfig.expo.version} (code: {parseInt(process.env.EXPO_PUBLIC_VERSION_CODE || '1', 10)})
-                    </Text>
-                    <Text variant="bodySmall" style={styles.content}>
-                        Latest version: {versionData.latest_version_name} (code: {versionData.latest_version_code})
-                    </Text>
-                    {versionData.release_notes && (
-                        <>
-                            <Divider style={[styles.divider, { marginVertical: 12 }]} />
-                            <Text variant="bodySmall" style={styles.content}>
-                                Release notes: {versionData.release_notes}
-                            </Text>
-                        </>
-                    )}
-                </Dialog.Content>
-                <Dialog.Actions>
-                    {!versionData.needs_update && (
-                        <Button
-                            onPress={onDismiss}
-                            style={styles.button}
-                            textColor={styles.dismissButtonText.color}
-                        >
-                            Later
-                        </Button>
-                    )}
-                    <Button
-                        onPress={onUpdate}
-                        mode="contained"
-                        style={[styles.button, styles.updateButton]}
-                        textColor={styles.updateButtonText.color}
-                    >
-                        Update
-                    </Button>
-                </Dialog.Actions>
-            </Dialog>
-        </Portal>
-    );
+              Later
+            </Button>
+          )}
+          <Button
+            onPress={onUpdate}
+            mode="contained"
+            style={[styles.button, styles.updateButton]}
+            textColor={styles.updateButtonText.color}
+          >
+            Update
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
+    </Portal>
+  );
 }
