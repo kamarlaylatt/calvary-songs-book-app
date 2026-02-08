@@ -17,6 +17,7 @@ import {
 } from "react-native-paper";
 import { styles } from "../../../styles/songs.styles";
 import { createThemedStyles } from "../../../styles/songs.themedStyles";
+import { htmlToPlainText } from "../../../utils/html";
 
 // Available categories for filtering - will be loaded from API
 const HYMN_CATEGORIES_DEFAULT: HymnCategory[] = [];
@@ -230,7 +231,12 @@ const HymnsPage = () => {
             {item.song?.lyrics && (
               <View style={themedStyles.songFooter}>
                 <Text style={themedStyles.description} numberOfLines={3}>
-                  {item.song.lyrics}
+                  {(() => {
+                    const plain = htmlToPlainText(item.song.lyrics);
+                    const words = plain.split(/\s+/).filter(Boolean);
+                    const sample = words.slice(0, 30).join(' ');
+                    return words.length > 30 ? sample + '…' : sample;
+                  })()}
                 </Text>
               </View>
             )}
