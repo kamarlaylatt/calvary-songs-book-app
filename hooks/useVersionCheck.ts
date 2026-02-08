@@ -27,7 +27,7 @@ export function useVersionCheck(): UseVersionCheckResult {
         // Get current app version code from environment variable
         // EXPO_PUBLIC_VERSION_CODE should be an integer (e.g., 100)
         const currentVersionCode = parseInt(
-          process.env.EXPO_PUBLIC_VERSION_CODE || "3",
+          process.env.EXPO_PUBLIC_VERSION_CODE || "4",
           10,
         );
 

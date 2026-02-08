@@ -2,12 +2,12 @@ import type { VersionCheckResponse } from "@/types/version";
 import React from "react";
 import { StyleSheet } from "react-native";
 import {
-    Button,
-    Dialog,
-    Divider,
-    Portal,
-    Text,
-    useTheme,
+  Button,
+  Dialog,
+  Divider,
+  Portal,
+  Text,
+  useTheme,
 } from "react-native-paper";
 import appConfig from "../app.json";
 
@@ -71,7 +71,7 @@ export function UpdateDialog({
           </Text>
           <Text variant="bodySmall" style={[styles.content, { marginTop: 8 }]}>
             Current version: {appConfig.expo.version} (code:{" "}
-            {parseInt(process.env.EXPO_PUBLIC_VERSION_CODE || "3", 10)})
+            {parseInt(process.env.EXPO_PUBLIC_VERSION_CODE || "4", 10)})
           </Text>
           <Text variant="bodySmall" style={styles.content}>
             Latest version: {versionData.latest_version_name} (code:{" "}
