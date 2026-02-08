@@ -1,6 +1,6 @@
 import { fetchHymnById, type HymnDetail } from "@/services/api";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Linking, RefreshControl, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
 import {
     Button,
@@ -12,6 +12,7 @@ import {
     Text,
     useTheme,
 } from "react-native-paper";
+import RenderHtml from "react-native-render-html";
 import YoutubePlayer from "react-native-youtube-iframe";
 import { useFavorites } from "../../../contexts/FavoritesContext";
 
@@ -119,6 +120,76 @@ function HymnDetailScreen() {
 
   const { width } = useWindowDimensions();
 
+  // Memoized HTML rendering configs placed before any conditional returns to keep hooks order stable
+  const tagsStyles = useMemo(() => ({
+    body: {
+      whiteSpace: 'normal' as const,
+      color: theme.colors.onSurfaceVariant,
+      fontSize: 16,
+      lineHeight: 24,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+    },
+    p: {
+      marginBottom: 16,
+      textAlign: 'center' as const,
+    },
+    br: {
+      marginBottom: 8,
+    },
+    div: {
+      marginBottom: 12,
+    },
+    span: {
+      color: theme.colors.onSurfaceVariant,
+    },
+    strong: {
+      fontWeight: 'bold' as const,
+      color: theme.colors.onSurface,
+    },
+    em: {
+      fontStyle: 'italic' as const,
+      color: theme.colors.primary,
+    },
+    h1: {
+      fontSize: 20,
+      fontWeight: 'bold' as const,
+      marginBottom: 12,
+      color: theme.colors.onSurface,
+    },
+    h2: {
+      fontSize: 18,
+      fontWeight: 'bold' as const,
+      marginBottom: 10,
+      color: theme.colors.onSurface,
+    },
+    h3: {
+      fontSize: 16,
+      fontWeight: 'bold' as const,
+      marginBottom: 8,
+      color: theme.colors.onSurface,
+    },
+  }), [theme.colors]);
+
+  const systemFonts = useMemo(() => [
+    '-apple-system',
+    'BlinkMacSystemFont',
+    'Segoe UI',
+    'Roboto',
+    'Oxygen',
+    'Ubuntu',
+    'Cantarell',
+    'Fira Sans',
+    'Droid Sans',
+    'Helvetica Neue',
+    'sans-serif'
+  ], []);
+
+  const renderersProps = useMemo(() => ({
+    img: {
+      enableExperimentalPercentWidth: true,
+    },
+  }), []);
+
   // Create theme-aware styles
   const themedStyles = StyleSheet.create({
     container: {
@@ -216,27 +287,6 @@ function HymnDetailScreen() {
       borderRadius: 12,
       marginTop: 4,
     },
-    lyricsText: {
-      fontSize: 16,
-      lineHeight: 28,
-      color: theme.colors.onSurface,
-      textAlign: "center",
-    },
-    verse: {
-      marginBottom: 24,
-    },
-    verseNumber: {
-      fontSize: 12,
-      fontWeight: "600",
-      color: theme.colors.primary,
-      marginBottom: 8,
-      textAlign: "center",
-    },
-    chorus: {
-      marginTop: 16,
-      fontStyle: "italic",
-      color: theme.colors.primary,
-    },
     emptyContainer: {
       flex: 1,
       justifyContent: "center",
@@ -272,36 +322,6 @@ function HymnDetailScreen() {
     },
   });
 
-  const formatLyrics = (lyrics: string) => {
-    const lines = lyrics.split("\n").filter((line) => line.trim());
-    const sections: Array<{ type: "verse" | "chorus"; content: string }> = [];
-    let currentSection: string[] = [];
-
-    lines.forEach((line) => {
-      const trimmedLine = line.trim();
-
-      // Detect chorus (often in parentheses or specific indicators)
-      if (
-        trimmedLine.includes("chorus") ||
-        trimmedLine.includes("Chorus") ||
-        trimmedLine.match(/^\[.*\]$/)
-      ) {
-        if (currentSection.length > 0) {
-          sections.push({ type: "verse", content: currentSection.join("\n") });
-          currentSection = [];
-        }
-      }
-
-      currentSection.push(trimmedLine);
-    });
-
-    if (currentSection.length > 0) {
-      sections.push({ type: "verse", content: currentSection.join("\n") });
-    }
-
-    return sections;
-  };
-
   const handleRetry = useCallback(() => {
     loadHymn();
   }, [loadHymn]);
@@ -331,9 +351,6 @@ function HymnDetailScreen() {
   }
 
   const isFavorite = favoriteStatus[hymn.song.slug] || false;
-  const lyricsSections = hymn.song?.lyrics
-    ? formatLyrics(hymn.song.lyrics)
-    : [];
 
   return (
     <ScrollView
@@ -437,12 +454,18 @@ function HymnDetailScreen() {
                 Description
               </Text>
             </View>
-            <Text
-              variant="bodyMedium"
-              style={{ color: theme.colors.onSurface }}
-            >
-              {hymn.song.description}
-            </Text>
+            <RenderHtml
+              contentWidth={width - 64}
+              source={{
+                html: hymn.song.description.includes('<')
+                  ? hymn.song.description
+                  : hymn.song.description.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')
+              }}
+              tagsStyles={tagsStyles}
+              systemFonts={systemFonts}
+              enableExperimentalMarginCollapsing={true}
+              renderersProps={renderersProps}
+            />
           </Card.Content>
         </Card>
       )}
@@ -514,18 +537,18 @@ function HymnDetailScreen() {
             </View>
             <Divider style={themedStyles.divider} />
             <View style={themedStyles.lyricsContainer}>
-              {lyricsSections.map((section, index) => (
-                <View key={index} style={themedStyles.verse}>
-                  {section.type === "chorus" && (
-                    <Text style={themedStyles.chorus}>{section.content}</Text>
-                  )}
-                  {section.type === "verse" && (
-                    <Text style={themedStyles.lyricsText}>
-                      {section.content}
-                    </Text>
-                  )}
-                </View>
-              ))}
+              <RenderHtml
+                contentWidth={width - 80}
+                source={{
+                  html: hymn.song.lyrics.includes('<')
+                    ? hymn.song.lyrics
+                    : hymn.song.lyrics.split('\n').map(line => `<p>${line || '&nbsp;'}</p>`).join('')
+                }}
+                tagsStyles={tagsStyles}
+                systemFonts={systemFonts}
+                enableExperimentalMarginCollapsing={true}
+                renderersProps={renderersProps}
+              />
             </View>
           </Card.Content>
         </Card>
